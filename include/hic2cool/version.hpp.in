@@ -1,0 +1,10 @@
+#ifndef HIC2COOL_VERSION_HPP
+#define HIC2COOL_VERSION_HPP
+
+namespace hic2cool {
+
+inline constexpr const char* kVersion = "@PROJECT_VERSION@";
+
+}  // namespace hic2cool
+
+#endif  // HIC2COOL_VERSION_HPP

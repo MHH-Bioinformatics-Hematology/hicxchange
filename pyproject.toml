@@ -1,47 +1,49 @@
-# Written by Carl Vitzthum with help from Soo Lee
-# This code was originally based off of the straw project by Neva C. Durand and
-# Yue Wu (https://github.com/theaidenlab/straw). The cooler file writing was
-# based off of much of the CLI code contained in this
-# repo: https://github.com/mirnylab/cooler.
+# hic2cool 2.x is a fork of hic2cool (https://github.com/4dn-dcic/hic2cool),
+# written by Carl Vitzthum, Nezar Abdennur, Soo Lee and Peter Kerpedjiev and
+# released under the MIT licence, which this fork keeps. The original .hic
+# parsing was based on the straw project by Neva C. Durand and Yue Wu
+# (https://github.com/theaidenlab/straw); the cooler file layout follows
+# cooler (https://github.com/open2c/cooler). The conversions are now C++.
 
-[tool.poetry]
+[build-system]
+requires = ["scikit-build-core>=0.10", "pybind11>=2.12"]
+build-backend = "scikit_build_core.build"
+
+[project]
 name = "hic2cool"
-version = "1.0.1"
-description = """Converter between hic files (from juicer) and single-resolution or multi-resolution cool files (for cooler).  Both hic and cool files describe Hi-C contact matrices. Intended to be lightweight, this can be used as an imported package or a stand-alone Python tool for command line conversion."""
-authors = ["Carl Vitzthum <carl.vitzthum@gmail.com>"]
-license = "MIT"
+version = "2.0.0"
+description = "Converter between hic files (from juicer) and single-resolution or multi-resolution cool files (for cooler), both directions, .hic versions 6 to 9, multi-threaded C++."
 readme = "README.md"
-repository = "https://github.com/4dn-dcic/hic2cool/"
+license = { text = "MIT" }
+authors = [
+    { name = "Carl Vitzthum", email = "carl.vitzthum@gmail.com" },
+    { name = "Joachim Wolff" },
+]
 keywords = ["bioinformatics", "genomics", "hi-c", "juicer", "cooler", "contact-matrix", "file-format"]
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: C++",
     "Development Status :: 4 - Beta",
-    "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",
-    "Operating System :: OS Independent",
-    "Topic :: Software Development :: Libraries :: Python Modules",
-    "Topic :: Scientific/Engineering :: Bio-Informatics"
+    "Operating System :: POSIX :: Linux",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
 ]
-include = []
-packages = [
-    { include="hic2cool", from="." }
-]
+requires-python = ">=3.8"
+dependencies = ["numpy>=1.9"]
 
-[tool.poetry.dependencies]
-python = ">=3.8,<3.10"
-numpy = ">=1.9"
-scipy = ">=1.10.1"
-pandas = ">=1.0"
-h5py = ">=2.5.0"
-cooler = "0.9.3"
+[project.optional-dependencies]
+test = ["pytest", "h5py", "cooler"]
 
+[project.urls]
+Repository = "https://github.com/4dn-dcic/hic2cool/"
 
-[tool.poetry.plugins]
+[tool.scikit-build]
+cmake.version = ">=3.21"
+wheel.packages = ["hic2cool"]
+build.targets = ["_hic2cool", "hic2cool", "cool2hic"]
+install.components = []
 
-[tool.poetry.plugins.console_scripts]
-    "hic2cool" = "hic2cool.__main__:main"
-
-[build-system]
-requires = ["poetry_core>=1.0.0"]
-build-backend = "poetry.core.masonry.api"
+[tool.scikit-build.cmake.define]
+HIC2COOL_BUILD_PYTHON = "ON"
+HIC2COOL_BUILD_TESTS = "OFF"

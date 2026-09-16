@@ -1,51 +1,29 @@
-# hic2cool #
+# hic2cool 2 #
 
-[![Build Status](https://travis-ci.org/4dn-dcic/hic2cool.svg?branch=master)](https://travis-ci.org/4dn-dcic/hic2cool)
+Converter between hic files (from juicer) and single-resolution or multi-resolution cool files (for cooler), in both directions. Both hic and cool files describe Hi-C contact matrices.
 
-Converter between hic files (from juicer) and single-resolution or multi-resolution cool files (for cooler).  Both hic and cool files describe Hi-C contact matrices. Intended to be lightweight, this can be used as an imported package or a stand-alone Python tool for command line conversion
+**This is a fork of [hic2cool](https://github.com/4dn-dcic/hic2cool)**, written by Carl Vitzthum, Nezar Abdennur, Soo Lee and Peter Kerpedjiev at the 4DN Data Coordination and Integration Center (Park lab and Gehlenborg lab, Harvard Medical School DBMI; Mirny lab, MIT), released under the MIT licence. The fork keeps that licence ([LICENSE.txt](LICENSE.txt)), its command line and its Python API, and replaces the implementation with multi-threaded C++:
 
-The hic parsing code is based off the [straw project](https://github.com/theaidenlab/straw) by Neva C. Durand and Yue Wu. The hdf5-based structure used for cooler file writing is based off code from the [cooler repository](https://github.com/mirnylab/cooler).
+* **.hic versions 6 to 9.** hic2cool 1.0.1 reads versions 6 to 8; a version 9 file (Juicer tools 2) stops with a `UnicodeDecodeError`.
+* **All cores by default.** `-p/--nproc` and `nproc` default to 0, every CPU the process may use. The output does not depend on the number of threads.
+* **The same files.** On the test files of both projects, `hic2cool convert`, `extract-norms` and `update` write the groups, datasets, dtypes, chunk shapes, filters, attributes and values hic2cool 1.0.1 writes, and print the same messages ([docs/DEVIATIONS.md](docs/DEVIATIONS.md) lists the exceptions).
+* **cool2hic**, the opposite conversion: .cool and .mcool files to .hic version 8 or 9.
 
-## Important
+The original hic parsing code was based on the [straw project](https://github.com/theaidenlab/straw) by Neva C. Durand and Yue Wu, and the hdf5-based structure used for cooler file writing on the [cooler repository](https://github.com/open2c/cooler). The C++ implementation reads and writes .hic files with hicfilecpp (see [Building](#building)), which follows hicstraw and Juicer tools.
 
-* Starting from version 0.8.0, hic2cool no longer supports Python 2.7.
+## Converting .hic to cool
 
-* If you converted a hic file using a version of hic2cool lower than 0.5.0, please update your cooler file with the [new update function](#updating-hic2cool-coolers).
-
-## Using the Python package
-```
-$ pip install hic2cool
-```
-
-You can also download the code directly and install using Poetry (as of version 1.0.0)
-
-```
-$ poetry install
-```
-
-Once the package is installed, the main method is hic2cool_convert. It takes the same parameters as hic2cool.py, described in the next section. Example usage in a Python script is shown below or in test.py.
-```
-from hic2cool import hic2cool_convert
-hic2cool_convert(<infile>, <outfile>, <resolution (optional)>, <nproc (optional)>, <warnings (optional)>, <silent (optional)>)
-```
-
-
-## Converting files using the command line
-
-The main use of hic2cool is converting between filetypes using `hic2cool convert`. If you install hic2cool itself using pip, you use it on the command line with:
 ```
 $ hic2cool convert <infile> <outfile> -r <resolution> -p <nproc>
 ```
 
-### Arguments for hic2cool convert
-
-**infile** is a .hic input file.
+**infile** is a .hic input file, version 6, 7, 8 or 9.
 
 **outfile** is a .cool output file.
 
 **-r**, or --resolution, is an integer bp resolution supported by the hic file. *Please note* that only resolutions contained within the original hic file can be used. If 0 is given, will use all resolutions to build a multi-resolution file. Default is 0.
 
-**-p**, or --nproc, is the number of processes to use. Default 1. The multiprocessing is not very efficient and would slightly improve speed only for large high-resolution matrices. 
+**-p**, or --nproc, is the number of threads to use. Default 0: all available CPUs.
 
 **-w**, or --warnings, causes warnings to be explicitly printed to the console. This is false by default, though there are a few cases in which hic2cool will exit with an error based on the input hic file.
 
@@ -57,6 +35,79 @@ $ hic2cool convert <infile> <outfile> -r <resolution> -p <nproc>
 
 Running hic2cool from the command line will cause some helpful information about the hic file to be printed to stdout unless the `-s` flag is used.
 
+## Converting cool to .hic
+
+```
+$ cool2hic <infile> <outfile> [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
+           [--hic-version {8,9}] [-n NORMALIZATIONS] [--cooler-weight NAME] [-g GENOME] [-s] [-w]
+```
+
+**infile** is a .cool or .mcool file, or a cooler URI such as `matrix.mcool::/resolutions/10000`.
+
+**outfile** is the .hic output file.
+
+**-r**, or --resolution: the resolution of the cooler file to write; 0 (default) writes every resolution of the file.
+
+**-a**, or --add-resolutions: comma separated coarser resolutions to add, each a multiple of the finest resolution written, binned from it (for example `2500000,1000000,500000,250000,100000,50000,25000` for a 5 kb cooler, Juicer's usual zoom levels).
+
+**--hic-version**: 9 (default, as Juicer tools 2 writes) or 8 (Juicer tools 1.22).
+
+**-n**, or --normalizations: `auto` (default) writes the normalization vectors kept in the bins table, as hic2cool stores them, so that a .hic file converted to cool and back keeps its vectors; when the table has none, VC, VC_SQRT, KR and SCALE are computed as Juicer tools does. `none` writes none; a list such as `KR,SCALE` computes those.
+
+**--cooler-weight NAME** also writes cooler's balancing weights (the `weight` column from `cooler balance`) as the normalization vector NAME, inverted, since hic normalization vectors divide and cooler weights multiply.
+
+**-g**, or --genome: the genome id of the .hic header; default the cooler file's genome-assembly attribute.
+
+**-p**, **-s** and **-w** work as for `hic2cool convert`.
+
+A .hic file converted with `hic2cool convert` and back with `cool2hic` has the same pixels, normalization vectors and expected values as the original (bit for bit on the test files; version 9 stores vectors as float32).
+
+## Using the Python package
+
+```
+$ pip install .
+```
+
+Once the package is installed, the main method is hic2cool_convert. It takes the same parameters as `hic2cool convert`. Example usage in a Python script is shown below or in test.py.
+```
+from hic2cool import hic2cool_convert, cool2hic_convert
+hic2cool_convert(<infile>, <outfile>, <resolution (optional)>, <nproc (optional)>, <warnings (optional)>, <silent (optional)>)
+cool2hic_convert('my_cool.mcool', 'my_hic.hic', hic_version=9, normalizations='auto')
+```
+
+`hic2cool_update`, `hic2cool_extractnorms`, `hic2cool_print_stderr` and `hic2cool_force_exit` are available as before. Messages go to `sys.stdout` and `sys.stderr`, so redirecting those captures them; the conversions release the GIL.
+
+## Building
+
+hic2cool 2 needs a C++20 compiler, CMake 3.21 or newer, the HDF5 C library, zlib and hicfilecpp 0.4 or newer (the .hic reader and writer); pybind11 and scikit-build-core for the Python package.
+
+```
+# command line tools
+cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/hdf5-and-zlib-prefix \
+      -DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp
+cmake --build build -j
+cmake --install build --prefix /opt/hic2cool
+
+# with the Python module and the tests (needs pytest, h5py, numpy and cooler)
+cmake -S . -B build -DHIC2COOL_BUILD_PYTHON=ON -DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp
+cmake --build build -j && ctest --test-dir build --output-on-failure
+```
+
+hicfilecpp is found as an installed CMake package, taken from a source tree (`HIC2COOL_HICFILECPP_SOURCE_DIR`), or fetched (`HIC2COOL_HICFILECPP_GIT_REPOSITORY`, `HIC2COOL_HICFILECPP_GIT_TAG`).
+
+## Performance
+
+Measured on a 32-core machine (Linux, local NVMe disk) with the 40 GB `GSE63525_GM12878_insitu_primary+replicate_combined_30.hic` (GEO GSE63525, version 7): converting its 25 kb matrix (898,978,865 pixels) to cool, and that cool back to .hic version 9 with its seven normalization vectors.
+
+| Conversion | Threads | Wall time | Peak memory |
+|---|---|---|---|
+| `hic2cool convert -r 25000`, hic2cool 1.0.1 (Python) | 1 | 1,951 s | 5.25 GB |
+| `hic2cool convert -r 25000`, this fork | 1 | 162 s | 0.48 GB |
+| `hic2cool convert -r 25000`, this fork | 8 | 46 s | 0.76 GB |
+| `hic2cool convert -r 25000`, this fork | 32 | 34 s | 1.44 GB |
+| `cool2hic` (cool to .hic v9, vectors carried), this fork | 32 | 56 s | 3.19 GB |
+
+The cool files written with 1, 16 and 32 threads hold the same data in the same layout; they differ only in their timestamps. Converting the .hic file written by `cool2hic` back to cool returns all 898,978,865 pixels unchanged and the normalization vectors equal at float32 precision. Memory grows with the thread count because every thread decodes a .hic block at a time; `-p` bounds it.
 
 ## Output file structure
 If you elect to use all resolutions, a multi-resolution .mcool file will be produced. This changes the hdf5 structure of the file from a typical .cool file. Namely, all of the information needed for a complete cooler file is stored in separate hdf5 groups named by the individual resolutions. The hdf5 hierarchy is organized as such:
@@ -119,6 +170,12 @@ You may also provide the optional `-e` flag, which will cause the mitchondrial c
 
 
 ## Changelog
+### 2.0.0
+* Fork of hic2cool 1.0.1 with the conversions in multi-threaded C++; command line and Python API unchanged
+* Reads .hic version 9 (Juicer tools 2) besides versions 6 to 8
+* `-p/--nproc` defaults to 0, all available CPUs; the output does not depend on the number of threads
+* New `cool2hic` command and `cool2hic_convert`: cool and mcool files to .hic version 8 or 9, keeping or computing normalization vectors
+* `generated-by` is `hic2cool-2.0.0`; build with CMake or scikit-build-core instead of Poetry
 ### 1.0.1
 * Restore command line usage, adds missing README update
 ### 1.0.0
@@ -192,7 +249,9 @@ Added .travis.yml for automated testing. Changed command line running scheme. Py
 Added multi-resolution format to output cool files. Setup argparse. Improved speed. Added tests for new resolutions format.
 
 ## Contributors
-Written by Carl Vitzthum (1), Nezar Abdennur (2), Soo Lee (1), and Peter Kerpedjiev (3).
+hic2cool was written by Carl Vitzthum (1), Nezar Abdennur (2), Soo Lee (1), and Peter Kerpedjiev (3).
+
+The C++ fork (version 2) was written by Joachim Wolff.
 
 (1) Park lab, Harvard Medical School DBMI
 

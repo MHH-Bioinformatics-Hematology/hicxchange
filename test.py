@@ -18,6 +18,7 @@ from hic2cool import (
     hic2cool_convert,
     hic2cool_update,
     hic2cool_extractnorms,
+    cool2hic_convert,
     hic2cool_print_stderr,
     hic2cool_force_exit,
     __version__
@@ -79,13 +80,26 @@ class TestRunConvertAndExtractNorms(unittest.TestCase):
         md5.update(str_val)
         return md5.hexdigest(), bin_lens
 
+    @staticmethod
+    def stored_bytes(fname):
+        """
+        Bytes of dataset data stored in the file. hic2cool 1.0.1 asserted the
+        file size (6158040), which includes the space h5py leaves unused when
+        it rewrites partly filled chunks; the stored data is the same.
+        """
+        sizes = []
+        with h5py.File(fname, 'r') as h5:
+            h5.visititems(lambda name, obj: sizes.append(obj.id.get_storage_size())
+                          if isinstance(obj, h5py.Dataset) else None)
+        return sum(sizes)
+
     def test_convert(self):
         hic2cool_convert(self.infile_name, self.outfile_name_all)
-        assert os.stat(self.outfile_name_all).st_size == 6158040
+        assert self.stored_bytes(self.outfile_name_all) == 5558076
 
     def test_convert_multiprocessing(self):
         hic2cool_convert(self.infile_name, self.outfile_name_all, 0, 2)
-        assert os.stat(self.outfile_name_all).st_size == 6158040
+        assert self.stored_bytes(self.outfile_name_all) == 5558076
 
     def test_0_run_with_warnings(self):
         with captured_output() as (out, err):
@@ -422,6 +436,105 @@ class TestUtilities(unittest.TestCase):
         read_err = err.getvalue().strip()
         self.assertTrue('fatal error!' in read_err)
         self.assertTrue(req.closed)  # file closed by force_exit
+
+
+def datasets_of(fname):
+    """Every dataset of a cool or mcool file as a numpy array, by path."""
+    out = {}
+    with h5py.File(fname, 'r') as h5:
+        h5.visititems(lambda name, obj: out.__setitem__(name, obj[:])
+                      if isinstance(obj, h5py.Dataset) else None)
+    return out
+
+
+def assert_same_arrays(test, a, b, names=None):
+    names = sorted(a) if names is None else names
+    test.assertEqual(sorted(k for k in a if k in names), sorted(k for k in b if k in names))
+    for name in names:
+        if a[name].dtype.kind == 'f':
+            test.assertTrue(np.array_equal(a[name], b[name], equal_nan=True), name)
+        else:
+            test.assertTrue(np.array_equal(a[name], b[name]), name)
+
+
+class TestFork(unittest.TestCase):
+    """
+    What the C++ fork adds: .hic versions 6 to 9, output independent of the
+    number of threads, and cool2hic.
+    """
+    v6 = 'test_data/GM12878_combined_30.chr21_chr22.v6.hic'
+    v7 = 'test_data/GM12878_combined_30.chr21_chr22.v7.hic'
+    v8 = 'test_data/SRR1791297_30.juicer_tools_1.22.01.v8.hic'
+    v9 = 'test_data/SRR1791297_30.juicer_tools_2.20.00.v9.hic'
+
+    def test_versions_6_and_7(self):
+        a = datasets_of(hic2cool_convert(self.v6, 'test_data/OUT_fork_v6.mcool', silent=True))
+        b = datasets_of(hic2cool_convert(self.v7, 'test_data/OUT_fork_v7.mcool', silent=True))
+        assert_same_arrays(self, a, b)
+        self.assertEqual(len(a['resolutions/250000/pixels/count']), 39771)
+
+    def test_version_9(self):
+        a = datasets_of(hic2cool_convert(self.v8, 'test_data/OUT_fork_v8.mcool', silent=True))
+        b = datasets_of(hic2cool_convert(self.v9, 'test_data/OUT_fork_v9.mcool', silent=True))
+        # Juicer tools 1.22.01 and 2.20.00 wrote the same contacts; their
+        # normalization vectors differ in rounding (and SCALE at 10 kb).
+        names = [n for n in a if '/bins/' not in n or n.split('/')[-1] in ('chrom', 'start', 'end')]
+        assert_same_arrays(self, a, b, names)
+        self.assertEqual(len(b['resolutions/10000/pixels/count']), 701342)
+        for norm in ('VC', 'VC_SQRT', 'KR'):
+            x, y = a['resolutions/50000/bins/' + norm], b['resolutions/50000/bins/' + norm]
+            self.assertTrue(np.allclose(x, y, rtol=1e-6, equal_nan=True))
+
+    def test_threads_do_not_change_the_output(self):
+        a = datasets_of(hic2cool_convert(self.v8, 'test_data/OUT_fork_p1.mcool', nproc=1, silent=True))
+        b = datasets_of(hic2cool_convert(self.v8, 'test_data/OUT_fork_p8.mcool', nproc=8, silent=True))
+        assert_same_arrays(self, a, b)
+
+    def test_cool2hic_round_trip(self):
+        for version in (8, 9):
+            source = self.v8 if version == 8 else self.v9
+            first = hic2cool_convert(source, 'test_data/OUT_fork_rt%d.mcool' % version, silent=True)
+            hic = cool2hic_convert(first, 'test_data/OUT_fork_rt%d.hic' % version, hic_version=version, silent=True)
+            back = hic2cool_convert(hic, 'test_data/OUT_fork_rt%d_back.mcool' % version, silent=True)
+            # pixels and normalization vectors come back bit for bit
+            assert_same_arrays(self, datasets_of(first), datasets_of(back))
+            with h5py.File(back, 'r') as h5:
+                self.assertEqual(h5['resolutions/10000'].attrs['software'],
+                                 'cool2hic (hic2cool %s)' % __version__)
+
+    def test_cool2hic_single_resolution_added_resolutions_computed_norms(self):
+        single = hic2cool_convert(self.v8, 'test_data/OUT_fork_10kb.cool', 10000, silent=True)
+        hic = cool2hic_convert(single, 'test_data/OUT_fork_10kb.hic', add_resolutions=[50000, 250000],
+                               normalizations=['VC', 'KR'], silent=True)
+        back = datasets_of(hic2cool_convert(hic, 'test_data/OUT_fork_10kb_back.mcool', silent=True))
+        full = datasets_of(hic2cool_convert(self.v8, 'test_data/OUT_fork_v8_all.mcool', silent=True))
+        for res in ('10000', '50000', '250000'):
+            names = ['resolutions/%s/%s' % (res, n) for n in
+                     ('pixels/bin1_id', 'pixels/bin2_id', 'pixels/count', 'bins/start', 'indexes/bin1_offset')]
+            assert_same_arrays(self, full, back, names)
+        self.assertEqual(sorted(k.split('/')[-1] for k in back if k.startswith('resolutions/10000/bins/')),
+                         ['KR', 'VC', 'chrom', 'end', 'start'])
+        # computed as Juicer tools 1.22.01 computes them
+        self.assertTrue(np.allclose(full['resolutions/50000/bins/KR'], back['resolutions/50000/bins/KR'],
+                                    rtol=1e-3, equal_nan=True))
+
+    def test_cool2hic_errors(self):
+        single = hic2cool_convert(self.v8, 'test_data/OUT_fork_10kb.cool', 10000, silent=True)
+        with captured_output() as (out, err):
+            with self.assertRaises(SystemExit) as exc:
+                cool2hic_convert(single, 'test_data/OUT_fork_bad.hic', resolution=5000, silent=True)
+        self.assertEqual(exc.exception.code, 1)
+        self.assertTrue('not a resolution of this file' in err.getvalue())
+        with captured_output() as (out, err):
+            with self.assertRaises(SystemExit):
+                cool2hic_convert(single, 'test_data/OUT_fork_bad.hic', add_resolutions=[15000], silent=True)
+        self.assertTrue('not a multiple' in err.getvalue())
+
+    def test_unreadable_input(self):
+        with captured_output() as (out, err):
+            with self.assertRaises(SystemExit):
+                hic2cool_convert('test_data/hic2cool_0.4.2_single_res.cool', 'test_data/OUT_fork_x.cool', silent=True)
+        self.assertTrue('magic string is incorrect' in err.getvalue())
 
 
 if __name__ == '__main__':

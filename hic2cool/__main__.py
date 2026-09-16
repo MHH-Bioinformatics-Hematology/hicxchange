@@ -5,6 +5,8 @@ from . import (
     hic2cool_extractnorms,
     __version__
 )
+# The installed hic2cool and cool2hic commands are the C++ executables; this
+# module keeps `python -m hic2cool` working with the same arguments.
 import argparse
 import sys
 
@@ -44,9 +46,9 @@ def main():
     )
     convert_subparser.add_argument(
         "-p", "--nproc",
-        help="number of processes to use to parse hic file. default set to 1",
+        help="number of threads to use to parse hic file. default set to 0, all available CPUs",
         type=int,
-        default=1
+        default=0
     )
 
     # add a subparser for the 'update' command

@@ -8,7 +8,6 @@ from __future__ import (
     print_function,
     unicode_literals
 )
-import h5py
 from .hic2cool_config import *
 
 
@@ -73,6 +72,7 @@ def update_invert_weights(writefile):
     Invert all the weights from each resolution (if a mult-res file) or the
     top level (if a single-res file)
     """
+    import h5py
     # helper fxn
     def update_invert_weight_for_resolution(h5_data, res=None):
         """
@@ -100,6 +100,7 @@ def update_cooler_schema_v3(writefile):
     """
     Add format-version and storage-mode attributes to given cooler
     """
+    import h5py
     # helper fxn
     def add_v3_attrs(h5_data, res=None):
         info = {
@@ -125,6 +126,7 @@ def update_mcool_schema_v2(writefile):
     """
     Add format and format-version attributes to the base level of an mcool
     """
+    import h5py
     with h5py.File(writefile, "r+") as h5_file:
         # only run if it's an mcool and 'resolutions' exist
         if 'resolutions' in h5_file:
