@@ -79,21 +79,72 @@ cool2hic_convert('my_cool.mcool', 'my_hic.hic', hic_version=9, normalizations='a
 
 ## Building
 
-hic2cool 2 needs a C++20 compiler, CMake 3.21 or newer, the HDF5 C library, zlib and hicfilecpp 0.4 or newer (the .hic reader and writer); pybind11 and scikit-build-core for the Python package.
+Dependencies: a C++20 compiler (GCC 12 or newer, Clang 16 or newer), CMake 3.21
+or newer, the HDF5 C library, zlib, and hicfilecpp 0.4 or newer, which reads and
+writes the .hic files. The Python package also needs Python 3.8 or newer,
+pybind11 and scikit-build-core.
+
+Conda provides all of them:
 
 ```
-# command line tools
-cmake -S . -B build -DCMAKE_PREFIX_PATH=/path/to/hdf5-and-zlib-prefix \
+conda create -n hic2cool-build -c conda-forge python=3.12 cxx-compiler cmake \
+      hdf5 zlib pybind11 scikit-build-core pytest h5py numpy cooler
+conda activate hic2cool-build
+```
+
+### The command line tools
+
+`hicfilecpp` is found in one of three ways: as an installed CMake package
+(`find_package(hicfilecpp 0.4)`), as a source tree
+(`-DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp`), or fetched during the
+configure step (`-DHIC2COOL_HICFILECPP_GIT_REPOSITORY=<url>`, with
+`-DHIC2COOL_HICFILECPP_GIT_TAG=<tag>`).
+
+```
+cmake -S . -B build -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
       -DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp
 cmake --build build -j
-cmake --install build --prefix /opt/hic2cool
-
-# with the Python module and the tests (needs pytest, h5py, numpy and cooler)
-cmake -S . -B build -DHIC2COOL_BUILD_PYTHON=ON -DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp
-cmake --build build -j && ctest --test-dir build --output-on-failure
 ```
 
-hicfilecpp is found as an installed CMake package, taken from a source tree (`HIC2COOL_HICFILECPP_SOURCE_DIR`), or fetched (`HIC2COOL_HICFILECPP_GIT_REPOSITORY`, `HIC2COOL_HICFILECPP_GIT_TAG`).
+This writes `build/hic2cool` and `build/cool2hic`. To install them:
+
+```
+cmake --install build --prefix "$HOME/.local"
+hic2cool --version
+cool2hic --help
+```
+
+### The Python package
+
+```
+pip install . --config-settings=cmake.define.HIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp
+```
+
+This builds the extension module and installs the `hic2cool` and `cool2hic`
+commands alongside it. To build the module in the source tree instead, for
+example to run the tests against it, configure with `-DHIC2COOL_BUILD_PYTHON=ON`
+and point `Python_EXECUTABLE` and `pybind11_DIR` at the interpreter to build
+for:
+
+```
+cmake -S . -B build -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
+      -DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
+      -DHIC2COOL_BUILD_PYTHON=ON \
+      -DPython_EXECUTABLE="$(which python)" \
+      -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
+cmake --build build -j
+```
+
+### The tests
+
+The tests need the Python module (`-DHIC2COOL_BUILD_PYTHON=ON` above) and a
+Python with pytest, h5py, numpy and cooler; `cooler` must be on `PATH`, since
+one test calls `cooler dump`. They run the original hic2cool test suite and the
+fork's own tests against a copy of the package in the build tree:
+
+```
+ctest --test-dir build --output-on-failure
+```
 
 ## Performance
 

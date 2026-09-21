@@ -17,6 +17,10 @@ if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+# The installed hic2cool and cool2hic keep the directories HDF5 and zlib were
+# found in, so that they run outside the build tree without LD_LIBRARY_PATH.
+# Package builds (conda, distributions) set their own rpath handling.
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 
 find_package(HDF5 REQUIRED COMPONENTS C)
 find_package(ZLIB REQUIRED)
