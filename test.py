@@ -537,5 +537,73 @@ class TestFork(unittest.TestCase):
         self.assertTrue('magic string is incorrect' in err.getvalue())
 
 
+class TestPythonApiCompatibility(unittest.TestCase):
+    """
+    The Python API of hic2cool 1.0.1: the same names, the same positional
+    arguments and the same defaults, so that code written for it keeps
+    working. nproc defaults to 0 (every available CPU) instead of 1, and
+    everything the fork adds is keyword only.
+    """
+    # hic2cool 1.0.1, with its nproc default in a comment
+    UPSTREAM = {
+        'hic2cool_convert': ['infile', 'outfile', 'resolution', 'nproc', 'show_warnings', 'silent'],
+        'hic2cool_update': ['infile', 'outfile', 'show_warnings', 'silent'],
+        'hic2cool_extractnorms': ['infile', 'outfile', 'exclude_mt', 'show_warnings', 'silent'],
+    }
+    UPSTREAM_DEFAULTS = {
+        'hic2cool_convert': {'resolution': 0, 'show_warnings': False, 'silent': False},
+        'hic2cool_update': {'outfile': '', 'show_warnings': False, 'silent': False},
+        'hic2cool_extractnorms': {'exclude_mt': False, 'show_warnings': False, 'silent': False},
+    }
+
+    def test_names_are_exported(self):
+        import hic2cool
+        for name in ['hic2cool_convert', 'hic2cool_update', 'hic2cool_extractnorms', 'hic2cool_print_stderr',
+                     'hic2cool_force_exit', 'hic2cool_config', 'hic2cool_updates', 'hic2cool_utils', '__version__']:
+            self.assertTrue(hasattr(hic2cool, name), name)
+        from hic2cool.hic2cool_config import COOLER_FORMAT, NORM_DTYPE  # noqa: F401
+        from hic2cool.hic2cool_updates import prepare_hic2cool_updates, norm_convert  # noqa: F401
+
+    def test_positional_arguments_are_unchanged(self):
+        import inspect
+        import hic2cool
+        for name, expected in self.UPSTREAM.items():
+            parameters = inspect.signature(getattr(hic2cool, name)).parameters
+            positional = [p.name for p in parameters.values()
+                          if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
+            self.assertEqual(positional, expected, name)
+            for argument, default in self.UPSTREAM_DEFAULTS[name].items():
+                self.assertEqual(parameters[argument].default, default, f'{name}.{argument}')
+        # what the fork adds is keyword only
+        convert = inspect.signature(hic2cool.hic2cool_convert).parameters
+        self.assertEqual(convert['nproc'].default, 0)
+        self.assertEqual(convert['storage_mode'].kind, inspect.Parameter.KEYWORD_ONLY)
+        cool2hic = inspect.signature(hic2cool.cool2hic_convert).parameters
+        self.assertEqual(cool2hic['triangle'].kind, inspect.Parameter.KEYWORD_ONLY)
+        self.assertEqual([p for p in list(cool2hic)[:2]], ['infile', 'outfile'])
+
+    def test_calls_written_for_hic2cool_1_0_1(self):
+        # every positional form of the original package
+        out = hic2cool_convert('test_data/SRR1791297_30.juicer_tools_1.22.01.v8.hic',
+                               'test_data/OUT_api_compat.cool', 10000, 1, False, True)
+        self.assertTrue(os.path.isfile(out))
+        with captured_output() as (stdout, stderr):
+            hic2cool_extractnorms('test_data/SRR1791297_30.juicer_tools_1.22.01.v8.hic', out, False, False, True)
+            hic2cool_update(out, '', False, True)
+        self.assertEqual(stdout.getvalue().strip().splitlines()[-1], '... Exiting')
+        with h5py.File(out, 'r') as h5:
+            self.assertEqual(h5.attrs['storage-mode'], 'symmetric-upper')
+            self.assertEqual(h5.attrs['bin-size'], 10000)
+
+    def test_new_options_are_keyword_only(self):
+        with self.assertRaises(TypeError):
+            hic2cool_convert('test_data/SRR1791297_30.juicer_tools_1.22.01.v8.hic', 'test_data/OUT_api_compat2.cool',
+                             10000, 1, False, True, 'square')
+        out = hic2cool_convert('test_data/SRR1791297_30.juicer_tools_1.22.01.v8.hic', 'test_data/OUT_api_compat2.cool',
+                               10000, silent=True, storage_mode='square')
+        with h5py.File(out, 'r') as h5:
+            self.assertEqual(h5.attrs['storage-mode'], 'square')
+
+
 if __name__ == '__main__':
     unittest.main()

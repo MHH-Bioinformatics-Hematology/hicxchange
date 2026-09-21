@@ -14,6 +14,11 @@ The original hic parsing code was based on the straw project by Neva C. Durand
 and Yue Wu (https://github.com/theaidenlab/straw); the cooler file layout
 follows cooler (https://github.com/open2c/cooler).
 
+The functions of hic2cool 1.0.1 keep their names, their positional arguments
+and their defaults, with one exception: nproc defaults to 0, every available
+CPU, instead of 1. Everything this fork adds is a keyword only argument, so
+positional calls written for hic2cool 1.0.1 keep working unchanged.
+
 See README for more information
 """
 import os
@@ -30,7 +35,8 @@ def _run(function, *args, **kwargs):
         force_exit(str(error))
 
 
-def hic2cool_convert(infile, outfile, resolution=0, nproc=0, show_warnings=False, silent=False):
+def hic2cool_convert(infile, outfile, resolution=0, nproc=0, show_warnings=False, silent=False, *,
+                     storage_mode='symmetric-upper'):
     """
     Main function that coordinates the reading of header and footer from infile
     and uses that information to parse the hic matrix.
@@ -44,13 +50,16 @@ def hic2cool_convert(infile, outfile, resolution=0, nproc=0, show_warnings=False
     <nproc> number of threads to use; 0 (the default) uses all available CPUs
     <show_warnings> bool. If True, print out WARNING messages
     <silent> bool. If true, hide standard output
+    <storage_mode> keyword only: 'symmetric-upper' (default, the upper
+                triangle) or 'square' (both triangles, cooler's layout for
+                asymmetric matrices)
 
     Returns the path written: .cool for one resolution, .mcool for several.
     """
     with open(infile, 'rb'):
         pass
     return _run(_hic2cool.convert, os.fspath(infile), os.fspath(outfile), int(resolution), int(nproc),
-                bool(show_warnings), bool(silent))
+                bool(show_warnings), bool(silent), storage_mode)
 
 
 def hic2cool_extractnorms(infile, outfile, exclude_mt=False, show_warnings=False, silent=False):
@@ -93,7 +102,8 @@ def hic2cool_update(infile, outfile='', show_warnings=False, silent=False):
 
 
 def cool2hic_convert(infile, outfile, resolution=0, nproc=0, hic_version=9, normalizations='auto',
-                     add_resolutions=None, cooler_weight=None, genome=None, show_warnings=False, silent=False):
+                     add_resolutions=None, cooler_weight=None, genome=None, show_warnings=False, silent=False, *,
+                     triangle='auto'):
     """
     Convert a cooler file to a .hic file (the opposite of hic2cool_convert).
 
@@ -112,6 +122,8 @@ def cool2hic_convert(infile, outfile, resolution=0, nproc=0, hic_version=9, norm
     <cooler_weight> str. If given, cooler's 'weight' column is written as the
                 divisive hic normalization vector of this name
     <genome> str genome id; default the cooler file's genome-assembly
+    <triangle> keyword only, for square coolers: 'auto' (fail unless
+                symmetric), 'upper' or 'lower'
     <show_warnings> bool. If True, print out WARNING messages
     <silent> bool. If true, hide standard output
 
@@ -124,7 +136,7 @@ def cool2hic_convert(infile, outfile, resolution=0, nproc=0, hic_version=9, norm
         normalizations = ','.join(normalizations) if normalizations else 'none'
     return _run(_hic2cool.cool2hic, os.fspath(infile), os.fspath(outfile), int(resolution),
                 [int(r) for r in (add_resolutions or [])], int(nproc), int(hic_version), normalizations,
-                cooler_weight, genome or '', bool(show_warnings), bool(silent))
+                cooler_weight, genome or '', bool(show_warnings), bool(silent), triangle)
 
 
 def print_stderr(message):
