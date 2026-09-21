@@ -174,7 +174,8 @@ class PixelWriter {
 };
 
 void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const HicHeader& header, h5::File& file,
-                        std::int32_t binsize, bool multi_res, bool show_warnings, const Console& console) {
+                        std::int32_t binsize, bool multi_res, bool square, bool show_warnings,
+                        const Console& console) {
     std::string group = "/";
     if (multi_res) {
         if (!file.exists("/resolutions")) {
@@ -294,7 +295,7 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
     file.set_attribute(group, "format", std::string("HDF5::Cooler"));
     file.set_attribute(group, "format-url", std::string(kFormatUrl));
     file.set_attribute(group, "format-version", std::int64_t{3});
-    file.set_attribute(group, "storage-mode", std::string("symmetric-upper"));
+    file.set_attribute(group, "storage-mode", std::string(square ? "square" : "symmetric-upper"));
     file.set_attribute(group, "generated-by", std::string("hic2cool-") + kVersion);
     file.set_attribute(group, "genome-assembly", header.genome);
     file.set_attribute(group, "creation-date", utcnow_isoformat());
@@ -323,6 +324,7 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
             std::int64_t bins2;
             std::int64_t offset1;
             std::int64_t offset2;
+            bool mirror;  // square storage: the pair transposed, its pixels in chr_a's rows as bin1
         };
         struct BlockRef {
             std::int64_t floor;
@@ -331,31 +333,54 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
         };
         std::vector<PairMatrix> pairs;
         std::vector<BlockRef> blocks;
-        for (const HicChrom* chr_b : chroms) {
-            const std::int32_t c1 = std::min(chr_a->index, chr_b->index);
-            const std::int32_t c2 = std::max(chr_a->index, chr_b->index);
-            if (!covered.insert({c1, c2}).second) {
-                continue;
-            }
+        const auto add_pair = [&](std::int32_t c1, std::int32_t c2, bool mirror) {
             const auto headers = hic.hasMatrix(c1, c2) ? hic.matrixZoomHeaders(c1, c2)
                                                         : std::vector<hicfilecpp::ZoomHeader>{};
             const auto zoom = std::find_if(headers.begin(), headers.end(), [&](const hicfilecpp::ZoomHeader& h) {
                 return h.unit == "BP" && h.binSize == binsize;
             });
             if (zoom == headers.end()) {
-                if (show_warnings) {
+                if (show_warnings && !mirror) {
                     console.err("... The intersection between " + name_of[c1] + " and " + name_of[c2] +
                                 " cannot be found in the hic file.");
                 }
-                continue;
+                return;
             }
             pairs.push_back(PairMatrix{hic.getMatrixZoomData(name_of[c1], name_of[c2], "observed", "NONE", "BP", binsize),
-                                       bins_of[c1], bins_of[c2], offset_of[c1], offset_of[c2]});
+                                       bins_of[c1], bins_of[c2], offset_of[c1], offset_of[c2], mirror});
             const bool v9_intra = hic.version() > 8 && c1 == c2;
             for (const auto& entry : pairs.back().mzd.blockIndex()) {
-                blocks.push_back(BlockRef{pairs.back().offset1 + block_bin1_floor(entry.number, zoom->blockBinCount,
-                                                                                  zoom->blockColumnCount, v9_intra),
-                                          pairs.size() - 1, entry});
+                std::int64_t floor = 0;
+                if (!mirror) {
+                    floor = pairs.back().offset1 +
+                            block_bin1_floor(entry.number, zoom->blockBinCount, zoom->blockColumnCount, v9_intra);
+                } else if (v9_intra) {
+                    // binY >= (binX + binY) / 2, so the bound of binX holds for binY
+                    floor = pairs.back().offset2 +
+                            block_bin1_floor(entry.number, zoom->blockBinCount, zoom->blockColumnCount, true);
+                } else {
+                    // the block's row: binY / blockBinCount
+                    floor = pairs.back().offset2 + static_cast<std::int64_t>(entry.number / zoom->blockColumnCount) *
+                                                       zoom->blockBinCount;
+                }
+                blocks.push_back(BlockRef{floor, pairs.size() - 1, entry});
+            }
+        };
+        for (const HicChrom* chr_b : chroms) {
+            const std::int32_t c1 = std::min(chr_a->index, chr_b->index);
+            const std::int32_t c2 = std::max(chr_a->index, chr_b->index);
+            if (!covered.insert({c1, c2}).second) {
+                continue;
+            }
+            add_pair(c1, c2, false);
+        }
+        if (square) {
+            // The lower triangle of chr_a's rows: every pair (c, chr_a) with c
+            // up to chr_a, transposed, the diagonal left out.
+            for (const HicChrom* chr_b : chroms) {
+                if (chr_b->index <= chr_a->index) {
+                    add_pair(chr_b->index, chr_a->index, true);
+                }
             }
         }
         std::sort(blocks.begin(), blocks.end(), [](const BlockRef& a, const BlockRef& b) {
@@ -375,10 +400,16 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
                 for (const auto& record : pair.mzd.readBlock(block.entry)) {
                     if (record.binX >= 0 && record.binX < pair.bins1 && record.binY >= 0 &&
                         record.binY < pair.bins2) {
-                        const std::int64_t bin1 = record.binX + pair.offset1;
+                        std::int64_t bin1 = record.binX + pair.offset1;
+                        std::int64_t bin2 = record.binY + pair.offset2;
+                        if (pair.mirror) {
+                            if (bin1 == bin2) {
+                                continue;
+                            }
+                            std::swap(bin1, bin2);
+                        }
                         lowest[k] = std::min(lowest[k], bin1);
-                        decoded[k].push_back(Pixel{static_cast<std::int32_t>(bin1),
-                                                   static_cast<std::int32_t>(record.binY + pair.offset2),
+                        decoded[k].push_back(Pixel{static_cast<std::int32_t>(bin1), static_cast<std::int32_t>(bin2),
                                                    numpy_int32(record.counts)});
                     }
                 }
@@ -418,7 +449,12 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
 }  // namespace
 
 std::string hic2cool_convert(const std::string& infile, const std::string& outfile, std::int64_t resolution,
-                             int nproc, bool show_warnings, bool silent, const Console& console) {
+                             int nproc, bool show_warnings, bool silent, const std::string& storage_mode,
+                             const Console& console) {
+    if (storage_mode != "symmetric-upper" && storage_mode != "square") {
+        throw ExitError("!!! ERROR. storage mode must be symmetric-upper or square, not " + storage_mode);
+    }
+    const bool square = storage_mode == "square";
     check_hic_magic(infile);
     const hicfilecpp::HiCFile hic(infile);
     const HicHeader header = read_hic_header(hic, console);
@@ -459,7 +495,7 @@ std::string hic2cool_convert(const std::string& infile, const std::string& outfi
     h5::File file(written, h5::Mode::Create);
     for (const std::int32_t binsize : use) {
         const auto start = std::chrono::steady_clock::now();
-        convert_resolution(pool, hic, header, file, binsize, multi_res, show_warnings, console);
+        convert_resolution(pool, hic, header, file, binsize, multi_res, square, show_warnings, console);
         const double elapsed = std::chrono::duration<double>(std::chrono::steady_clock::now() - start).count();
         if (!silent) {
             console.out("... Resolution " + std::to_string(binsize) + " took: " + py_repr(elapsed) + " seconds.");

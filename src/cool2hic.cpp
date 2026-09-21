@@ -14,6 +14,7 @@
 #include <map>
 #include <memory>
 #include <set>
+#include <cstring>
 #include <sstream>
 
 #include <hicfilecpp/hicfilecpp.hpp>
@@ -49,6 +50,7 @@ struct Resolution {
     std::vector<std::int64_t> chrom_offset;  // bins, per chromosome, n + 1
     std::vector<std::int64_t> bin1_offset;
     std::vector<std::string> columns;       // norm columns carried from this group
+    bool square = false;                    // storage-mode square: both triangles stored
 };
 
 std::string text_of(const std::optional<h5::Value>& value) {
@@ -77,8 +79,9 @@ std::vector<std::string> split_list(const std::string& text) {
 
 class CoolSource : public hicfilecpp::PixelSource {
   public:
-    CoolSource(ThreadPool& pool, const h5::File& file, std::vector<Resolution>& resolutions)
-        : pool_(pool), file_(file), resolutions_(resolutions) {}
+    // lower: take the lower triangle of square coolers, transposed.
+    CoolSource(ThreadPool& pool, const h5::File& file, std::vector<Resolution>& resolutions, bool lower)
+        : pool_(pool), file_(file), resolutions_(resolutions), lower_(lower) {}
 
     // The group whose pixels give `resolution`: its own, or the finest one,
     // binned.
@@ -98,19 +101,23 @@ class CoolSource : public hicfilecpp::PixelSource {
         // The writer asks for one pair at a time, once per resolution; a
         // pair's pixels are kept until it moves on to the next pair.
         if (chr1 != last_chr1_ || chr2 != last_chr2_) {
-            for (auto& [path, cache] : caches_) {
-                if (cache.chr1 == last_chr1_ && last_chr2_ >= 0) {
-                    std::vector<hicfilecpp::Pixel>().swap(cache.buckets[static_cast<std::size_t>(last_chr2_)]);
-                }
-            }
+            release(last_chr1_, last_chr2_);
             last_chr1_ = chr1;
             last_chr2_ = chr2;
         }
-        Cache& cache = caches_[group.path];
-        if (cache.chr1 != chr1) {
-            load(group, chr1, cache);
+        // Upper: the rows of chr1, pixels whose bin2 lies on chr2. Lower: the
+        // rows of chr2, pixels whose bin2 lies on chr1, transposed.
+        const std::int32_t row_chrom = lower_ ? chr2 : chr1;
+        const std::int32_t other = lower_ ? chr1 : chr2;
+        auto& loaded = caches_[group.path];
+        auto it = loaded.find(row_chrom);
+        if (it == loaded.end()) {
+            if (!lower_) {
+                loaded.clear();  // upper: one row chromosome at a time
+            }
+            it = loaded.emplace(row_chrom, load(group, row_chrom)).first;
         }
-        const auto& bucket = cache.buckets[static_cast<std::size_t>(chr2)];
+        const auto& bucket = it->second[static_cast<std::size_t>(other)];
         if (bucket.empty()) {
             return;
         }
@@ -129,20 +136,66 @@ class CoolSource : public hicfilecpp::PixelSource {
 
     [[nodiscard]] std::size_t skipped() const noexcept { return skipped_; }
 
-  private:
-    struct Cache {
-        std::int32_t chr1 = -1;
-        std::vector<std::vector<hicfilecpp::Pixel>> buckets;
-    };
-
-    // Reads the rows of chromosome chr1 once and sorts their pixels by the
-    // chromosome of bin2.
-    void load(const Resolution& group, std::int32_t chr1, Cache& cache) {
+    // Whether a square cooler's lower triangle mirrors its upper triangle:
+    // the number of off-diagonal pixels and an order-independent 64-bit
+    // hash of (smaller bin, larger bin, count) agree between the triangles.
+    bool symmetric(const Resolution& group) {
+        std::uint64_t upper_hash = 0;
+        std::uint64_t lower_hash = 0;
+        std::uint64_t upper_count = 0;
+        std::uint64_t lower_count = 0;
         const std::size_t n_chroms = group.chrom_offset.size() - 1;
-        cache.chr1 = chr1;
-        cache.buckets.assign(n_chroms, {});
-        const std::int64_t first_bin = group.chrom_offset[static_cast<std::size_t>(chr1)];
-        const std::int64_t end_bin = group.chrom_offset[static_cast<std::size_t>(chr1) + 1];
+        for (std::size_t chrom = 0; chrom < n_chroms; ++chrom) {
+            scan_rows(group, static_cast<std::int32_t>(chrom), [&](std::int64_t b1, std::int64_t b2, double value) {
+                if (b1 == b2 || value == 0) {
+                    return;
+                }
+                std::uint64_t h = mix(static_cast<std::uint64_t>(std::min(b1, b2)));
+                h = mix(h ^ static_cast<std::uint64_t>(std::max(b1, b2)));
+                std::uint64_t bits = 0;
+                std::memcpy(&bits, &value, sizeof(bits));
+                h = mix(h ^ bits);
+                if (b1 < b2) {
+                    upper_hash += h;
+                    ++upper_count;
+                } else {
+                    lower_hash += h;
+                    ++lower_count;
+                }
+            });
+        }
+        return upper_hash == lower_hash && upper_count == lower_count;
+    }
+
+  private:
+    using Buckets = std::vector<std::vector<hicfilecpp::Pixel>>;
+
+    static std::uint64_t mix(std::uint64_t x) {  // splitmix64
+        x += 0x9e3779b97f4a7c15ULL;
+        x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ULL;
+        x = (x ^ (x >> 27)) * 0x94d049bb133111ebULL;
+        return x ^ (x >> 31);
+    }
+
+    void release(std::int32_t chr1, std::int32_t chr2) {
+        if (chr1 < 0) {
+            return;
+        }
+        const std::int32_t row_chrom = lower_ ? chr2 : chr1;
+        const std::int32_t other = lower_ ? chr1 : chr2;
+        for (auto& [path, loaded] : caches_) {
+            const auto it = loaded.find(row_chrom);
+            if (it != loaded.end()) {
+                std::vector<hicfilecpp::Pixel>().swap(it->second[static_cast<std::size_t>(other)]);
+            }
+        }
+    }
+
+    // Visits (bin1, bin2, count) of every pixel in the rows of `chrom`.
+    template <class Visit>
+    void scan_rows(const Resolution& group, std::int32_t chrom, Visit visit) {
+        const std::int64_t first_bin = group.chrom_offset[static_cast<std::size_t>(chrom)];
+        const std::int64_t end_bin = group.chrom_offset[static_cast<std::size_t>(chrom) + 1];
         const auto lo = static_cast<std::size_t>(group.bin1_offset[static_cast<std::size_t>(first_bin)]);
         const auto hi = static_cast<std::size_t>(group.bin1_offset[static_cast<std::size_t>(end_bin)]);
         if (hi <= lo) {
@@ -153,46 +206,63 @@ class CoolSource : public hicfilecpp::PixelSource {
             readers.first = std::make_unique<h5::ColumnReader>(file_, group.prefix + "pixels/bin2_id");
             readers.second = std::make_unique<h5::ColumnReader>(file_, group.prefix + "pixels/count");
         }
-        const h5::ColumnReader& bin2_reader = *readers.first;
-        const h5::ColumnReader& count_reader = *readers.second;
         std::vector<std::int64_t> bin2(std::min(kReadSlice, hi - lo));
         std::vector<double> count(bin2.size());
         std::int64_t bin1 = first_bin;
         for (std::size_t start = lo; start < hi; start += kReadSlice) {
             const std::size_t n = std::min(kReadSlice, hi - start);
-            bin2_reader.read(pool_, start, start + n, bin2.data());
-            count_reader.read(pool_, start, start + n, count.data());
+            readers.first->read(pool_, start, start + n, bin2.data());
+            readers.second->read(pool_, start, start + n, count.data());
             for (std::size_t k = 0; k < n; ++k) {
                 const std::size_t row = start + k;
-                while (bin1 < end_bin && static_cast<std::size_t>(group.bin1_offset[static_cast<std::size_t>(bin1) + 1]) <= row) {
+                while (bin1 < end_bin &&
+                       static_cast<std::size_t>(group.bin1_offset[static_cast<std::size_t>(bin1) + 1]) <= row) {
                     ++bin1;
                 }
-                const std::int64_t b2 = bin2[k];
-                const auto chr2_it = std::upper_bound(group.chrom_offset.begin(), group.chrom_offset.end(), b2);
-                const auto chr2 = static_cast<std::int32_t>(chr2_it - group.chrom_offset.begin()) - 1;
-                if (chr2 < chr1 || chr2 >= static_cast<std::int32_t>(n_chroms) || (chr2 == chr1 && b2 < bin1)) {
-                    continue;  // the lower triangle of a square cooler
-                }
-                const double value = count[k];
-                if (value == 0) {
-                    continue;
-                }
-                if (!std::isfinite(value)) {
-                    ++skipped_;
-                    continue;
-                }
-                cache.buckets[static_cast<std::size_t>(chr2)].push_back(hicfilecpp::Pixel{
-                    static_cast<std::int32_t>(bin1 - first_bin),
-                    static_cast<std::int32_t>(b2 - group.chrom_offset[static_cast<std::size_t>(chr2)]),
-                    static_cast<float>(value)});
+                visit(bin1, bin2[k], count[k]);
             }
         }
+    }
+
+    // The pixels of the rows of `chrom`, by the chromosome of their other bin:
+    // for the upper triangle bin2 on the same or a later chromosome, for the
+    // lower triangle bin2 on the same or an earlier one, transposed.
+    Buckets load(const Resolution& group, std::int32_t chrom) {
+        const std::size_t n_chroms = group.chrom_offset.size() - 1;
+        const std::int64_t first_bin = group.chrom_offset[static_cast<std::size_t>(chrom)];
+        Buckets buckets(n_chroms);
+        scan_rows(group, chrom, [&](std::int64_t b1, std::int64_t b2, double value) {
+            const auto it = std::upper_bound(group.chrom_offset.begin(), group.chrom_offset.end(), b2);
+            const auto chr2 = static_cast<std::int32_t>(it - group.chrom_offset.begin()) - 1;
+            if (chr2 < 0 || chr2 >= static_cast<std::int32_t>(n_chroms)) {
+                return;
+            }
+            const bool upper = chr2 > chrom || (chr2 == chrom && b2 >= b1);
+            const bool lower = chr2 < chrom || (chr2 == chrom && b2 <= b1);
+            if (lower_ ? !lower : !upper) {
+                return;
+            }
+            if (value == 0) {
+                return;
+            }
+            if (!std::isfinite(value)) {
+                ++skipped_;
+                return;
+            }
+            const auto local1 = static_cast<std::int32_t>(b1 - first_bin);
+            const auto local2 = static_cast<std::int32_t>(b2 - group.chrom_offset[static_cast<std::size_t>(chr2)]);
+            buckets[static_cast<std::size_t>(chr2)].push_back(
+                lower_ ? hicfilecpp::Pixel{local2, local1, static_cast<float>(value)}
+                       : hicfilecpp::Pixel{local1, local2, static_cast<float>(value)});
+        });
+        return buckets;
     }
 
     ThreadPool& pool_;
     const h5::File& file_;
     std::vector<Resolution>& resolutions_;
-    std::map<std::string, Cache> caches_;
+    bool lower_;
+    std::map<std::string, std::map<std::int32_t, Buckets>> caches_;
     std::map<std::string, std::pair<std::unique_ptr<h5::ColumnReader>, std::unique_ptr<h5::ColumnReader>>> readers_;
     std::int32_t last_chr1_ = -1;
     std::int32_t last_chr2_ = -1;
@@ -246,6 +316,7 @@ std::string cool2hic_convert(const std::string& infile, const std::string& outfi
             throw ExitError("!!! ERROR. Unusable bin size " + std::to_string(binsize) + " in " + group);
         }
         r.binsize = static_cast<std::int32_t>(binsize);
+        r.square = text_of(file.attribute(group, "storage-mode")) == "square";
         available.push_back(std::move(r));
     }
     std::sort(available.begin(), available.end(),
@@ -380,6 +451,9 @@ std::string cool2hic_convert(const std::string& infile, const std::string& outfi
         console.out("... Normalizations computed:  " + py_repr(computed));
         console.out("... Genome:  " + genome);
         console.out("... hic version:  " + std::to_string(options.hic_version));
+        if (std::any_of(chosen.begin(), chosen.end(), [](const Resolution& r) { return r.square; })) {
+            console.out("... Square cooler, triangle:  " + options.triangle);
+        }
         console.out("### Converting");
     }
 
@@ -450,7 +524,26 @@ std::string cool2hic_convert(const std::string& infile, const std::string& outfi
         return vector;
     };
 
-    CoolSource source(pool, file, chosen);
+    // Square coolers: .hic stores one triangle.
+    const std::string triangle = options.triangle;
+    if (triangle != "auto" && triangle != "upper" && triangle != "lower") {
+        throw ExitError("!!! ERROR. triangle must be auto, upper or lower, not " + triangle);
+    }
+    const bool any_square = std::any_of(chosen.begin(), chosen.end(), [](const Resolution& r) { return r.square; });
+    if (triangle == "lower" && std::any_of(chosen.begin(), chosen.end(), [](const Resolution& r) { return !r.square; })) {
+        throw ExitError("!!! ERROR. --triangle lower needs square coolers; " + path +
+                        " stores the upper triangle only");
+    }
+    CoolSource source(pool, file, chosen, triangle == "lower");
+    if (any_square && triangle == "auto") {
+        for (const auto& r : chosen) {
+            if (r.square && !source.symmetric(r)) {
+                throw ExitError("!!! ERROR. The square cooler " + r.path + " in " + path +
+                                " is not symmetric, and .hic files store one triangle. Choose it with "
+                                "--triangle upper or --triangle lower.");
+            }
+        }
+    }
     try {
         hicfilecpp::writeHicFile(outfile, write, source);
     } catch (const hicfilecpp::HicError& e) {

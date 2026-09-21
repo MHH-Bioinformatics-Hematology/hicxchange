@@ -56,13 +56,14 @@ PYBIND11_MODULE(_hic2cool, m) {
     m.def(
         "convert",
         [](const std::string& infile, const std::string& outfile, std::int64_t resolution, int nproc,
-           bool show_warnings, bool silent) {
+           bool show_warnings, bool silent, const std::string& storage_mode) {
             const auto console = python_console();
             py::gil_scoped_release release;
-            return hic2cool::hic2cool_convert(infile, outfile, resolution, nproc, show_warnings, silent, console);
+            return hic2cool::hic2cool_convert(infile, outfile, resolution, nproc, show_warnings, silent, storage_mode,
+                                              console);
         },
         py::arg("infile"), py::arg("outfile"), py::arg("resolution") = 0, py::arg("nproc") = 0,
-        py::arg("show_warnings") = false, py::arg("silent") = false);
+        py::arg("show_warnings") = false, py::arg("silent") = false, py::arg("storage_mode") = "symmetric-upper");
 
     m.def(
         "extract_norms",
@@ -88,7 +89,7 @@ PYBIND11_MODULE(_hic2cool, m) {
         [](const std::string& infile, const std::string& outfile, std::int64_t resolution,
            const std::vector<std::int64_t>& add_resolutions, int nproc, int hic_version,
            const std::string& normalizations, std::optional<std::string> cooler_weight, const std::string& genome,
-           bool show_warnings, bool silent) {
+           bool show_warnings, bool silent, const std::string& triangle) {
             hic2cool::Cool2hicOptions options;
             options.resolution = resolution;
             options.add_resolutions = add_resolutions;
@@ -97,6 +98,7 @@ PYBIND11_MODULE(_hic2cool, m) {
             options.normalizations = normalizations;
             options.cooler_weight = std::move(cooler_weight);
             options.genome = genome;
+            options.triangle = triangle;
             options.show_warnings = show_warnings;
             options.silent = silent;
             const auto console = python_console();
@@ -106,5 +108,5 @@ PYBIND11_MODULE(_hic2cool, m) {
         py::arg("infile"), py::arg("outfile"), py::arg("resolution") = 0,
         py::arg("add_resolutions") = std::vector<std::int64_t>{}, py::arg("nproc") = 0, py::arg("hic_version") = 9,
         py::arg("normalizations") = "auto", py::arg("cooler_weight") = py::none(), py::arg("genome") = "",
-        py::arg("show_warnings") = false, py::arg("silent") = false);
+        py::arg("show_warnings") = false, py::arg("silent") = false, py::arg("triangle") = "auto");
 }

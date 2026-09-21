@@ -36,9 +36,11 @@ program modes:
 )";
 
 const char* kConvertUsage = R"(usage: hic2cool convert [-h] [-r RESOLUTION] [-p NPROC] [-s] [-w]
+                        [--storage-mode {symmetric-upper,square}]
                         infile outfile)";
 
 const char* kConvertHelp = R"(usage: hic2cool convert [-h] [-r RESOLUTION] [-p NPROC] [-s] [-w]
+                        [--storage-mode {symmetric-upper,square}]
                         infile outfile
 
 convert a hic file to a cooler file
@@ -62,6 +64,10 @@ options:
   -w, --warnings        if used, print out non-critical WARNING messages,
                         which are hidden by default. Silent mode takes
                         precedence over this
+  --storage-mode {symmetric-upper,square}
+                        symmetric-upper (default) stores the upper triangle,
+                        as hic2cool always has; square stores both triangles,
+                        cooler's layout for asymmetric matrices
 )";
 
 const char* kUpdateUsage = "usage: hic2cool update [-h] [-o OUTFILE] [-s] [-w] infile";
@@ -149,12 +155,18 @@ int run(const std::vector<std::string>& args) {
         parser.positional("outfile");
         parser.option(Option{"-r", "--resolution", "RESOLUTION", true, "0"});
         parser.option(Option{"-p", "--nproc", "NPROC", true, "0"});
+        parser.option(Option{"", "--storage-mode", "{symmetric-upper,square}", false, "symmetric-upper"});
         shared_options(parser);
         parser.parse(rest);
         check_extra(parser);
+        const std::string storage_mode = parser.value("--storage-mode");
+        if (storage_mode != "symmetric-upper" && storage_mode != "square") {
+            parser.error("argument --storage-mode: invalid choice: '" + storage_mode +
+                         "' (choose from 'symmetric-upper', 'square')");
+        }
         hic2cool::hic2cool_convert(parser.arg("infile"), parser.arg("outfile"), parser.integer("--resolution"),
                                    static_cast<int>(parser.integer("--nproc")), parser.flag("--warnings"),
-                                   parser.flag("--silent"));
+                                   parser.flag("--silent"), storage_mode);
     } else if (mode == "update") {
         Parser parser("hic2cool update", kUpdateUsage, kUpdateHelp);
         parser.positional("infile");

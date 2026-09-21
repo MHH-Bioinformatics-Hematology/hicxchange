@@ -16,12 +16,14 @@ using hic2cool::cli::Parser;
 
 const char* kUsage = R"(usage: cool2hic [-h] [-v] [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
                 [--hic-version {8,9}] [-n NORMALIZATIONS]
-                [--cooler-weight NAME] [-g GENOME] [-s] [-w]
+                [--cooler-weight NAME] [-g GENOME]
+                [--triangle {auto,upper,lower}] [-s] [-w]
                 infile outfile)";
 
 const char* kHelp = R"(usage: cool2hic [-h] [-v] [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
                 [--hic-version {8,9}] [-n NORMALIZATIONS]
-                [--cooler-weight NAME] [-g GENOME] [-s] [-w]
+                [--cooler-weight NAME] [-g GENOME]
+                [--triangle {auto,upper,lower}] [-s] [-w]
                 infile outfile
 
 convert a cooler file (.cool, .mcool or file.mcool::/resolutions/<bp>) to a
@@ -59,6 +61,10 @@ options:
   -g GENOME, --genome GENOME
                         genome id for the hic header. default: the cooler
                         file's genome-assembly attribute
+  --triangle {auto,upper,lower}
+                        for square coolers (both triangles stored): auto
+                        (default) requires a symmetric matrix; upper or lower
+                        writes that triangle, as .hic files store one
   -s, --silent          if used, silence standard program output
   -w, --warnings        if used, print out non-critical WARNING messages,
                         which are hidden by default. Silent mode takes
@@ -83,6 +89,7 @@ int run(const std::vector<std::string>& args) {
     parser.option(Option{"-n", "--normalizations", "NORMALIZATIONS", false, "auto"});
     parser.option(Option{"", "--cooler-weight", "NAME", false, ""});
     parser.option(Option{"-g", "--genome", "GENOME", false, ""});
+    parser.option(Option{"", "--triangle", "{auto,upper,lower}", false, "auto"});
     parser.option(Option{"-s", "--silent", "", false, ""});
     parser.option(Option{"-w", "--warnings", "", false, ""});
     parser.parse(args);
@@ -122,6 +129,10 @@ int run(const std::vector<std::string>& args) {
         options.cooler_weight = parser.value("--cooler-weight");
     }
     options.genome = parser.value("--genome");
+    options.triangle = parser.value("--triangle");
+    if (options.triangle != "auto" && options.triangle != "upper" && options.triangle != "lower") {
+        parser.error("argument --triangle: invalid choice: '" + options.triangle + "' (choose from 'auto', 'upper', 'lower')");
+    }
     options.show_warnings = parser.flag("--warnings");
     options.silent = parser.flag("--silent");
     hic2cool::cool2hic_convert(parser.arg("infile"), parser.arg("outfile"), options);

@@ -55,10 +55,13 @@ struct Console {
 // that one resolution as a single resolution .cool file. As in the Python
 // package the output name is adjusted to .cool or .mcool; the name written is
 // returned. nproc 0 uses available_threads(); the output does not depend on
-// nproc.
+// nproc. storage_mode "symmetric-upper" (hic2cool's layout) stores the upper
+// triangle; "square" stores both triangles, cooler's layout for asymmetric
+// matrices, for tools that read square coolers only.
 std::string hic2cool_convert(const std::string& infile, const std::string& outfile,
                              std::int64_t resolution = 0, int nproc = 0,
                              bool show_warnings = false, bool silent = false,
+                             const std::string& storage_mode = "symmetric-upper",
                              const Console& console = Console::standard());
 
 // hic2cool_extractnorms(infile, outfile, exclude_mt=False,
@@ -96,6 +99,10 @@ struct Cool2hicOptions {
     // The genome id of the .hic header; empty takes the cool file's
     // genome-assembly attribute, or "unknown".
     std::string genome;
+    // For square coolers (both triangles stored), which triangle becomes the
+    // .hic file's: "auto" checks that the cooler is symmetric and fails when
+    // it is not; "upper" or "lower" takes that triangle as it is.
+    std::string triangle = "auto";
     bool show_warnings = false;
     bool silent = false;
 };
