@@ -28,44 +28,48 @@ find_package(Threads REQUIRED)
 
 # hicfilecpp (.hic reading and writing, 0.4 or newer): an installed package,
 # or a source tree given with HIC2COOL_HICFILECPP_SOURCE_DIR, or fetched.
-set(HIC2COOL_HICFILECPP_SOURCE_DIR "" CACHE PATH "hicfilecpp source tree to build with")
-set(HIC2COOL_HICFILECPP_GIT_REPOSITORY "" CACHE STRING "hicfilecpp git repository to fetch")
-set(HIC2COOL_HICFILECPP_GIT_TAG "main" CACHE STRING "hicfilecpp git tag to fetch")
-if(HIC2COOL_HICFILECPP_SOURCE_DIR)
-    set(HICFILECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(HICFILECPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
-    add_subdirectory(${HIC2COOL_HICFILECPP_SOURCE_DIR} ${CMAKE_BINARY_DIR}/hicfilecpp EXCLUDE_FROM_ALL)
-elseif(HIC2COOL_HICFILECPP_GIT_REPOSITORY)
-    include(FetchContent)
-    set(HICFILECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(HICFILECPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
-    FetchContent_Declare(hicfilecpp
-        GIT_REPOSITORY ${HIC2COOL_HICFILECPP_GIT_REPOSITORY}
-        GIT_TAG ${HIC2COOL_HICFILECPP_GIT_TAG})
-    FetchContent_MakeAvailable(hicfilecpp)
-else()
-    find_package(hicfilecpp 0.4 REQUIRED)
+if(NOT TARGET hicfilecpp::hicfilecpp)
+    set(HIC2COOL_HICFILECPP_SOURCE_DIR "" CACHE PATH "hicfilecpp source tree to build with")
+    set(HIC2COOL_HICFILECPP_GIT_REPOSITORY "" CACHE STRING "hicfilecpp git repository to fetch")
+    set(HIC2COOL_HICFILECPP_GIT_TAG "main" CACHE STRING "hicfilecpp git tag to fetch")
+    if(HIC2COOL_HICFILECPP_SOURCE_DIR)
+        set(HICFILECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(HICFILECPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
+        add_subdirectory(${HIC2COOL_HICFILECPP_SOURCE_DIR} ${CMAKE_BINARY_DIR}/hicfilecpp EXCLUDE_FROM_ALL)
+    elseif(HIC2COOL_HICFILECPP_GIT_REPOSITORY)
+        include(FetchContent)
+        set(HICFILECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(HICFILECPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
+        FetchContent_Declare(hicfilecpp
+            GIT_REPOSITORY ${HIC2COOL_HICFILECPP_GIT_REPOSITORY}
+            GIT_TAG ${HIC2COOL_HICFILECPP_GIT_TAG})
+        FetchContent_MakeAvailable(hicfilecpp)
+    else()
+        find_package(hicfilecpp 0.4 REQUIRED)
+    endif()
 endif()
 
 # coolercpp (cool file reading, writing and editing, 0.4 or newer): an installed
 # package, or a source tree given with HIC2COOL_COOLERCPP_SOURCE_DIR, or fetched.
-set(HIC2COOL_COOLERCPP_SOURCE_DIR "" CACHE PATH "coolercpp source tree to build with")
-set(HIC2COOL_COOLERCPP_GIT_REPOSITORY "" CACHE STRING "coolercpp git repository to fetch")
-set(HIC2COOL_COOLERCPP_GIT_TAG "main" CACHE STRING "coolercpp git tag to fetch")
-if(HIC2COOL_COOLERCPP_SOURCE_DIR)
-    set(COOLERCPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(COOLERCPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
-    add_subdirectory(${HIC2COOL_COOLERCPP_SOURCE_DIR} ${CMAKE_BINARY_DIR}/coolercpp EXCLUDE_FROM_ALL)
-elseif(HIC2COOL_COOLERCPP_GIT_REPOSITORY)
-    include(FetchContent)
-    set(COOLERCPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-    set(COOLERCPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
-    FetchContent_Declare(coolercpp
-        GIT_REPOSITORY ${HIC2COOL_COOLERCPP_GIT_REPOSITORY}
-        GIT_TAG ${HIC2COOL_COOLERCPP_GIT_TAG})
-    FetchContent_MakeAvailable(coolercpp)
-else()
-    find_package(coolercpp 0.4 REQUIRED)
+if(NOT TARGET coolercpp::coolercpp)
+    set(HIC2COOL_COOLERCPP_SOURCE_DIR "" CACHE PATH "coolercpp source tree to build with")
+    set(HIC2COOL_COOLERCPP_GIT_REPOSITORY "" CACHE STRING "coolercpp git repository to fetch")
+    set(HIC2COOL_COOLERCPP_GIT_TAG "main" CACHE STRING "coolercpp git tag to fetch")
+    if(HIC2COOL_COOLERCPP_SOURCE_DIR)
+        set(COOLERCPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(COOLERCPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
+        add_subdirectory(${HIC2COOL_COOLERCPP_SOURCE_DIR} ${CMAKE_BINARY_DIR}/coolercpp EXCLUDE_FROM_ALL)
+    elseif(HIC2COOL_COOLERCPP_GIT_REPOSITORY)
+        include(FetchContent)
+        set(COOLERCPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(COOLERCPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
+        FetchContent_Declare(coolercpp
+            GIT_REPOSITORY ${HIC2COOL_COOLERCPP_GIT_REPOSITORY}
+            GIT_TAG ${HIC2COOL_COOLERCPP_GIT_TAG})
+        FetchContent_MakeAvailable(coolercpp)
+    else()
+        find_package(coolercpp 0.4 REQUIRED)
+    endif()
 endif()
 
 configure_file(include/hic2cool/version.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/generated/hic2cool/version.hpp @ONLY)
@@ -89,6 +93,14 @@ target_link_libraries(hic2cool_core
     PRIVATE HDF5::HDF5 ZLIB::ZLIB Threads::Threads)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(hic2cool_core PRIVATE -Wall -Wextra)
+endif()
+
+add_library(hic2cool::core ALIAS hic2cool_core)
+
+# As a subproject (add_subdirectory from another project) only the library is
+# provided: no executables, Python module or tests.
+if(NOT PROJECT_IS_TOP_LEVEL)
+    return()
 endif()
 
 add_executable(hic2cool apps/hic2cool_main.cpp)
