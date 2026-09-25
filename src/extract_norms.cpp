@@ -9,50 +9,14 @@
 
 #include <hicfilecpp/hicfilecpp.hpp>
 
-#include "coolers.hpp"
-#include "h5.hpp"
+#include <coolercpp/coolercpp.hpp>
+
+#include "io.hpp"
 #include "hic2cool/hic2cool.hpp"
 #include "hic_header.hpp"
-#include "parallel.hpp"
 #include "pyformat.hpp"
 
 namespace hic2cool {
-
-namespace detail {
-
-// cooler.fileops.list_coolers: every group (the root included) whose format
-// attribute is HDF5::Cooler, or which holds chroms, bins, pixels and indexes
-// (cooler's _is_cooler), natsorted.
-std::vector<std::string> list_coolers(const h5::File& file) {
-    std::vector<std::string> listing;
-    const auto is_cooler = [&](const std::string& path) {
-        const auto format = file.attribute(path, "format");
-        if (format && std::holds_alternative<std::string>(*format)) {
-            return std::get<std::string>(*format) == "HDF5::Cooler";
-        }
-        const std::string prefix = path == "/" ? "/" : path + "/";
-        return file.is_group(prefix + "chroms") && file.is_group(prefix + "bins") &&
-               file.is_group(prefix + "pixels") && file.is_group(prefix + "indexes");
-    };
-    std::vector<std::string> stack{"/"};
-    while (!stack.empty()) {
-        const std::string path = stack.back();
-        stack.pop_back();
-        if (is_cooler(path)) {
-            listing.push_back(path);
-        }
-        const std::string prefix = path == "/" ? "/" : path + "/";
-        for (const auto& child : file.children(path)) {
-            if (file.is_group(prefix + child)) {
-                stack.push_back(prefix + child);
-            }
-        }
-    }
-    natsort(listing);
-    return listing;
-}
-
-}  // namespace detail
 
 void hic2cool_extractnorms(const std::string& infile, const std::string& outfile, bool exclude_mt,
                            bool show_warnings, bool silent, const Console& console) {
@@ -112,9 +76,10 @@ void hic2cool_extractnorms(const std::string& infile, const std::string& outfile
     }
 
     ThreadPool pool(1);
+    const std::vector<std::string> cooler_paths = coolercpp::list_coolers(outfile);
     h5::File file(outfile, h5::Mode::ReadWrite);
     std::vector<std::pair<std::int64_t, std::string>> cooler_groups;
-    for (const auto& path : list_coolers(file)) {
+    for (const auto& path : cooler_paths) {
         const auto size = file.attribute(path, "bin-size");
         if (!size || !std::holds_alternative<std::int64_t>(*size)) {
             throw ExitError("!!! ERROR. Cooler " + path + " in " + outfile + " has no integer bin-size");
@@ -187,7 +152,7 @@ void hic2cool_extractnorms(const std::string& infile, const std::string& outfile
             if (file.exists(path)) {
                 file.unlink(path);
             }
-            h5::ChunkedWriter writer(file.create_dataset(path, H5T_IEEE_F64LE, column.size(), true), 8, true);
+            h5::ChunkedWriter writer(file.create_dataset(path, h5::ColumnType::float64(), column.size(), true), 8, true);
             writer.append(column.data(), column.size());
             h5::flush(pool, {&writer}, true);
         }

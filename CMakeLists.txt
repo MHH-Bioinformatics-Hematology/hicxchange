@@ -47,15 +47,35 @@ else()
     find_package(hicfilecpp 0.4 REQUIRED)
 endif()
 
+# coolercpp (cool file reading, writing and editing, 0.4 or newer): an installed
+# package, or a source tree given with HIC2COOL_COOLERCPP_SOURCE_DIR, or fetched.
+set(HIC2COOL_COOLERCPP_SOURCE_DIR "" CACHE PATH "coolercpp source tree to build with")
+set(HIC2COOL_COOLERCPP_GIT_REPOSITORY "" CACHE STRING "coolercpp git repository to fetch")
+set(HIC2COOL_COOLERCPP_GIT_TAG "main" CACHE STRING "coolercpp git tag to fetch")
+if(HIC2COOL_COOLERCPP_SOURCE_DIR)
+    set(COOLERCPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(COOLERCPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
+    add_subdirectory(${HIC2COOL_COOLERCPP_SOURCE_DIR} ${CMAKE_BINARY_DIR}/coolercpp EXCLUDE_FROM_ALL)
+elseif(HIC2COOL_COOLERCPP_GIT_REPOSITORY)
+    include(FetchContent)
+    set(COOLERCPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+    set(COOLERCPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
+    FetchContent_Declare(coolercpp
+        GIT_REPOSITORY ${HIC2COOL_COOLERCPP_GIT_REPOSITORY}
+        GIT_TAG ${HIC2COOL_COOLERCPP_GIT_TAG})
+    FetchContent_MakeAvailable(coolercpp)
+else()
+    find_package(coolercpp 0.4 REQUIRED)
+endif()
+
 configure_file(include/hic2cool/version.hpp.in ${CMAKE_CURRENT_BINARY_DIR}/generated/hic2cool/version.hpp @ONLY)
 
 add_library(hic2cool_core STATIC
     src/convert.cpp
     src/cool2hic.cpp
     src/extract_norms.cpp
-    src/h5.cpp
     src/hic_header.cpp
-    src/parallel.cpp
+    src/runtime.cpp
     src/pyformat.cpp
     src/update.cpp)
 target_include_directories(hic2cool_core
@@ -65,7 +85,7 @@ target_include_directories(hic2cool_core
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(hic2cool_core
-    PUBLIC hicfilecpp::hicfilecpp
+    PUBLIC hicfilecpp::hicfilecpp coolercpp::coolercpp
     PRIVATE HDF5::HDF5 ZLIB::ZLIB Threads::Threads)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(hic2cool_core PRIVATE -Wall -Wextra)

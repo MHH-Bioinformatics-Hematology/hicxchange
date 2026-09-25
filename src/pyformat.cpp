@@ -245,47 +245,4 @@ std::string pandas_bins_head(const std::string& norm, const std::vector<BinsPrev
     return out;
 }
 
-void natsort(std::vector<std::string>& values) {
-    const auto less = [](const std::string& a, const std::string& b) {
-        std::size_t i = 0;
-        std::size_t j = 0;
-        while (i < a.size() && j < b.size()) {
-            const bool da = std::isdigit(static_cast<unsigned char>(a[i])) != 0;
-            const bool db = std::isdigit(static_cast<unsigned char>(b[j])) != 0;
-            if (da && db) {
-                std::size_t ie = i;
-                std::size_t je = j;
-                while (ie < a.size() && std::isdigit(static_cast<unsigned char>(a[ie]))) {
-                    ++ie;
-                }
-                while (je < b.size() && std::isdigit(static_cast<unsigned char>(b[je]))) {
-                    ++je;
-                }
-                std::string na = a.substr(i, ie - i);
-                std::string nb = b.substr(j, je - j);
-                na.erase(0, std::min(na.find_first_not_of('0'), na.size() - 1));
-                nb.erase(0, std::min(nb.find_first_not_of('0'), nb.size() - 1));
-                if (na.size() != nb.size()) {
-                    return na.size() < nb.size();
-                }
-                if (na != nb) {
-                    return na < nb;
-                }
-                i = ie;
-                j = je;
-            } else if (da != db) {
-                return da;  // natsort: numbers sort before text
-            } else {
-                if (a[i] != b[j]) {
-                    return a[i] < b[j];
-                }
-                ++i;
-                ++j;
-            }
-        }
-        return a.size() - i < b.size() - j;
-    };
-    std::stable_sort(values.begin(), values.end(), less);
-}
-
 }  // namespace hic2cool::detail
