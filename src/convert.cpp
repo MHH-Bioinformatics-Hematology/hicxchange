@@ -447,9 +447,14 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
 
 }  // namespace
 
-std::string hic2cool_convert(const std::string& infile, const std::string& outfile, std::int64_t resolution,
-                             int nproc, bool show_warnings, bool silent, const std::string& storage_mode,
-                             const Console& console) {
+namespace {
+
+// resolutions empty: every resolution of the file. exact_multi: a multi
+// resolution layout written to exactly `outfile`, even for one resolution.
+std::string convert_impl(const std::string& infile, const std::string& outfile,
+                         const std::vector<std::int64_t>& resolutions, bool all_when_empty, bool exact_multi,
+                         int nproc, bool show_warnings, bool silent, const std::string& storage_mode,
+                         const Console& console) {
     if (storage_mode != "symmetric-upper" && storage_mode != "square") {
         throw ExitError("!!! ERROR. storage mode must be symmetric-upper or square, not " + storage_mode);
     }
@@ -471,16 +476,22 @@ std::string hic2cool_convert(const std::string& infile, const std::string& outfi
         console.out("... Normalizations:  " + py_repr(header.norms));
         console.out("... Genome:  " + header.genome);
     }
-    if (resolution != 0 &&
-        std::find(header.resolutions.begin(), header.resolutions.end(), resolution) == header.resolutions.end()) {
-        throw ExitError("!!! ERROR. Given binsize (in bp) is not a supported resolution in this file.\n"
-                        "Please use 0 (all resolutions) or use one of: " +
-                        py_repr(header.resolutions));
+    std::vector<std::int32_t> use;
+    if (resolutions.empty() && all_when_empty) {
+        use = header.resolutions;
+    } else {
+        for (const std::int64_t resolution : resolutions) {
+            if (std::find(header.resolutions.begin(), header.resolutions.end(), resolution) ==
+                header.resolutions.end()) {
+                throw ExitError("!!! ERROR. Given binsize (in bp) is not a supported resolution in this file.\n"
+                                "Please use 0 (all resolutions) or use one of: " +
+                                py_repr(header.resolutions));
+            }
+            use.push_back(static_cast<std::int32_t>(resolution));
+        }
     }
-    const std::vector<std::int32_t> use =
-        resolution == 0 ? header.resolutions : std::vector<std::int32_t>{static_cast<std::int32_t>(resolution)};
-    const bool multi_res = use.size() > 1;
-    const std::string written = output_name(outfile, multi_res);
+    const bool multi_res = exact_multi || use.size() > 1;
+    const std::string written = exact_multi ? outfile : output_name(outfile, multi_res);
     std::error_code error;
     if (std::filesystem::exists(written, error)) {
         if (!std::filesystem::remove(written, error) || error) {
@@ -511,6 +522,24 @@ std::string hic2cool_convert(const std::string& infile, const std::string& outfi
         }
     }
     return written;
+}
+
+}  // namespace
+
+std::string hic2cool_convert(const std::string& infile, const std::string& outfile, std::int64_t resolution,
+                             int nproc, bool show_warnings, bool silent, const std::string& storage_mode,
+                             const Console& console) {
+    const std::vector<std::int64_t> resolutions =
+        resolution == 0 ? std::vector<std::int64_t>{} : std::vector<std::int64_t>{resolution};
+    return convert_impl(infile, outfile, resolutions, true, false, nproc, show_warnings, silent, storage_mode,
+                        console);
+}
+
+std::string hic2cool_convert_mcool(const std::string& infile, const std::string& outfile,
+                                   const std::vector<std::int64_t>& resolutions, int nproc, bool show_warnings,
+                                   bool silent, const Console& console) {
+    return convert_impl(infile, outfile, resolutions, true, true, nproc, show_warnings, silent,
+                        "symmetric-upper", console);
 }
 
 }  // namespace hic2cool

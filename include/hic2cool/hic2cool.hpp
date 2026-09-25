@@ -64,6 +64,15 @@ std::string hic2cool_convert(const std::string& infile, const std::string& outfi
                              const std::string& storage_mode = "symmetric-upper",
                              const Console& console = Console::standard());
 
+// The multi resolution layout for a chosen list of resolutions (every
+// resolution of the file when the list is empty), written to exactly
+// `outfile`: no renaming, and a multi resolution file even for one
+// resolution. Returns the path written. Otherwise as hic2cool_convert.
+std::string hic2cool_convert_mcool(const std::string& infile, const std::string& outfile,
+                                   const std::vector<std::int64_t>& resolutions = {}, int nproc = 0,
+                                   bool show_warnings = false, bool silent = false,
+                                   const Console& console = Console::standard());
+
 // hic2cool_extractnorms(infile, outfile, exclude_mt=False,
 // show_warnings=False, silent=False): adds the normalization vectors of a
 // .hic file to the bins tables of the cooler groups of outfile whose
