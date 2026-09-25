@@ -14,10 +14,9 @@
 
 #include <hicfilecpp/hicfilecpp.hpp>
 
-#include "h5.hpp"
+#include "io.hpp"
 #include "hic2cool/hic2cool.hpp"
 #include "hic_header.hpp"
-#include "parallel.hpp"
 #include "pyformat.hpp"
 
 namespace hic2cool {
@@ -123,9 +122,9 @@ class PixelWriter {
   public:
     PixelWriter(ThreadPool& pool, h5::File& file, const std::string& prefix, std::size_t n_bins)
         : pool_(pool),
-          bin1_(file.create_dataset(prefix + "pixels/bin1_id", H5T_STD_I64LE, 0, true), 8, true),
-          bin2_(file.create_dataset(prefix + "pixels/bin2_id", H5T_STD_I64LE, 0, true), 8, true),
-          count_(file.create_dataset(prefix + "pixels/count", H5T_STD_I32LE, 0, true), 4, true),
+          bin1_(file.create_dataset(prefix + "pixels/bin1_id", h5::ColumnType::int64(), 0, true), 8, true),
+          bin2_(file.create_dataset(prefix + "pixels/bin2_id", h5::ColumnType::int64(), 0, true), 8, true),
+          count_(file.create_dataset(prefix + "pixels/count", h5::ColumnType::int32(), 0, true), 4, true),
           bin1_counts_(n_bins, 0) {}
 
     // Appends pixels already in file order, a slice at a time, so that a
@@ -209,10 +208,10 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
         lengths.push_back(static_cast<std::int32_t>(chroms[i]->length));
     }
     {
-        const h5::Handle string_type = h5::fixed_string_type(kChromNameWidth);
-        h5::write_dataset(pool, file, prefix + "chroms/name", string_type.get(), names.data(), chroms.size());
+        const h5::ColumnType string_type = h5::ColumnType::fixed_string(kChromNameWidth);
+        h5::write_dataset(pool, file, prefix + "chroms/name", string_type, names.data(), chroms.size());
     }
-    h5::write_dataset(pool, file, prefix + "chroms/length", H5T_STD_I32LE, lengths.data(), lengths.size());
+    h5::write_dataset(pool, file, prefix + "chroms/length", h5::ColumnType::int32(), lengths.data(), lengths.size());
 
     // create_bins
     std::vector<std::int32_t> chrom_ids;
@@ -249,11 +248,11 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
     // write_bins
     file.create_group(prefix + "bins");
     {
-        const h5::Handle chrom_type = h5::enum_type(enum_names);
-        h5::write_dataset(pool, file, prefix + "bins/chrom", chrom_type.get(), chrom_ids.data(), n_bins);
+        const h5::ColumnType chrom_type = h5::ColumnType::enumeration(enum_names);
+        h5::write_dataset(pool, file, prefix + "bins/chrom", chrom_type, chrom_ids.data(), n_bins);
     }
-    h5::write_dataset(pool, file, prefix + "bins/start", H5T_STD_I32LE, starts.data(), n_bins);
-    h5::write_dataset(pool, file, prefix + "bins/end", H5T_STD_I32LE, ends.data(), n_bins);
+    h5::write_dataset(pool, file, prefix + "bins/start", h5::ColumnType::int32(), starts.data(), n_bins);
+    h5::write_dataset(pool, file, prefix + "bins/end", h5::ColumnType::int32(), ends.data(), n_bins);
     for (const auto& norm : header.norms) {
         std::vector<double> column;
         column.reserve(n_bins);
@@ -275,12 +274,12 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
             throw ExitError("!!! ERROR. Length of normalization vector " + norm +
                             " does not match the number of bins.\nThis is likely a problem with the hic file");
         }
-        h5::write_dataset(pool, file, prefix + "bins/" + norm, H5T_IEEE_F64LE, column.data(), n_bins);
+        h5::write_dataset(pool, file, prefix + "bins/" + norm, h5::ColumnType::float64(), column.data(), n_bins);
     }
 
     // write_chrom_offset and initialize_pixels
     file.create_group(prefix + "indexes");
-    h5::write_dataset(pool, file, prefix + "indexes/chrom_offset", H5T_STD_I64LE, chrom_offsets.data(),
+    h5::write_dataset(pool, file, prefix + "indexes/chrom_offset", h5::ColumnType::int64(), chrom_offsets.data(),
                       chrom_offsets.size());
     file.create_group(prefix + "pixels");
     PixelWriter writer(pool, file, prefix, n_bins);
@@ -441,7 +440,7 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
     for (std::size_t i = 0; i < n_bins; ++i) {
         bin1_offset[i + 1] = bin1_offset[i] + writer.bin1_counts()[i];
     }
-    h5::write_dataset(pool, file, prefix + "indexes/bin1_offset", H5T_STD_I64LE, bin1_offset.data(),
+    h5::write_dataset(pool, file, prefix + "indexes/bin1_offset", h5::ColumnType::int64(), bin1_offset.data(),
                       bin1_offset.size());
     file.set_attribute(group, "nnz", static_cast<std::int64_t>(writer.nnz()));
 }

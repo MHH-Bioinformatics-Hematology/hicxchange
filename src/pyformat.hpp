@@ -36,9 +36,6 @@ struct BinsPreviewRow {
 };
 [[nodiscard]] std::string pandas_bins_head(const std::string& norm, const std::vector<BinsPreviewRow>& rows);
 
-// natsort.natsorted of strings (numbers inside compare by value).
-void natsort(std::vector<std::string>& values);
-
 }  // namespace hic2cool::detail
 
 #endif  // HIC2COOL_PYFORMAT_HPP

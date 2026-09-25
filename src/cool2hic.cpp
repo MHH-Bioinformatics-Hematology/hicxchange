@@ -19,10 +19,10 @@
 
 #include <hicfilecpp/hicfilecpp.hpp>
 
-#include "coolers.hpp"
-#include "h5.hpp"
+#include <coolercpp/coolercpp.hpp>
+
+#include "io.hpp"
 #include "hic2cool/hic2cool.hpp"
-#include "parallel.hpp"
 #include "pyformat.hpp"
 
 namespace hic2cool {
@@ -285,9 +285,10 @@ std::string cool2hic_convert(const std::string& infile, const std::string& outfi
     if (!h5::is_hdf5(path)) {
         throw ExitError("!!! ERROR. " + path + " is not a cool or mcool file");
     }
+    const std::vector<std::string> cooler_paths = coolercpp::list_coolers(path);
     const h5::File file(path, h5::Mode::Read);
     std::vector<std::string> groups;
-    for (const auto& group : list_coolers(file)) {
+    for (const auto& group : cooler_paths) {
         if (root.empty() || root == "/" || group == root || group.rfind(root + "/", 0) == 0) {
             groups.push_back(group);
         }

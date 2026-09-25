@@ -80,8 +80,9 @@ cool2hic_convert('my_cool.mcool', 'my_hic.hic', hic_version=9, normalizations='a
 ## Building
 
 Dependencies: a C++20 compiler (GCC 12 or newer, Clang 16 or newer), CMake 3.21
-or newer, the HDF5 C library, zlib, and hicfilecpp 0.4 or newer, which reads and
-writes the .hic files. The Python package also needs Python 3.8 or newer,
+or newer, the HDF5 C library, zlib, hicfilecpp 0.4 or newer, which reads and
+writes the .hic files, and coolercpp 0.4 or newer, which reads, writes and edits
+the cool files. hic2cool contains no HDF5 code of its own. The Python package also needs Python 3.8 or newer,
 pybind11 and scikit-build-core.
 
 Conda provides all of them:
@@ -94,15 +95,18 @@ conda activate hic2cool-build
 
 ### The command line tools
 
-`hicfilecpp` is found in one of three ways: as an installed CMake package
-(`find_package(hicfilecpp 0.4)`), as a source tree
+`hicfilecpp` and `coolercpp` are each found in one of three ways: as an installed
+CMake package (`find_package(hicfilecpp 0.4)`), as a source tree
 (`-DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp`), or fetched during the
 configure step (`-DHIC2COOL_HICFILECPP_GIT_REPOSITORY=<url>`, with
-`-DHIC2COOL_HICFILECPP_GIT_TAG=<tag>`).
+`-DHIC2COOL_HICFILECPP_GIT_TAG=<tag>`). The variables of `coolercpp` are named
+`HIC2COOL_COOLERCPP_SOURCE_DIR`, `HIC2COOL_COOLERCPP_GIT_REPOSITORY` and
+`HIC2COOL_COOLERCPP_GIT_TAG`.
 
 ```
 cmake -S . -B build -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
-      -DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp
+      -DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
+      -DHIC2COOL_COOLERCPP_SOURCE_DIR=/path/to/coolercpp
 cmake --build build -j
 ```
 
@@ -117,7 +121,8 @@ cool2hic --help
 ### The Python package
 
 ```
-pip install . --config-settings=cmake.define.HIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp
+pip install . --config-settings=cmake.define.HIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
+      --config-settings=cmake.define.HIC2COOL_COOLERCPP_SOURCE_DIR=/path/to/coolercpp
 ```
 
 This builds the extension module and installs the `hic2cool` and `cool2hic`

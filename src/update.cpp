@@ -8,7 +8,7 @@
 #include <functional>
 #include <limits>
 
-#include "h5.hpp"
+#include "io.hpp"
 #include "hic2cool/hic2cool.hpp"
 #include "pyformat.hpp"
 
