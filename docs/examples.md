@@ -35,5 +35,22 @@ $ convert SRR1791297_30.v8.hic matrix.mcool back.hic
 wrote matrix.mcool and back.hic on 32 threads
 ```
 
-The Python functions take the same arguments; [the Python API page](python.md)
-shows them.
+## From Python
+
+`convert.py` does the same through the Python functions, which keep the names,
+positional arguments and defaults of hic2cool 1.0.1.
+
+```python title="examples/convert.py"
+--8<-- "examples/convert.py"
+```
+
+```
+$ python convert.py SRR1791297_30.v8.hic matrix.mcool back.hic
+### Header info from cool
+... Resolutions:  [1000000, 250000, 50000, 10000]
+... Normalizations carried:  ['KR', 'SCALE', 'VC', 'VC_SQRT']
+... hic version:  9
+### Converting
+### Finished! Output written to: back.hic
+wrote matrix.mcool and back.hic
+```

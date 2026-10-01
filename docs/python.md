@@ -9,12 +9,19 @@ defaults, so code written for it keeps working once the import changes from
 meaning every available CPU. Everything hicxchange adds is a keyword-only
 argument, so a positional call can never reach it.
 
-```python
-from hicxchange import hic2cool_convert, cool2hic_convert
+```python title="examples/convert.py"
+--8<-- "examples/convert.py"
+```
 
-out = hic2cool_convert('matrix.hic', 'matrix.mcool')          # every resolution
-out = hic2cool_convert('matrix.hic', 'matrix.cool', 10000)    # one resolution
-cool2hic_convert(out, 'matrix.hic', hic_version=9)
+```
+$ python convert.py SRR1791297_30.v8.hic matrix.mcool back.hic
+### Header info from cool
+... Resolutions:  [1000000, 250000, 50000, 10000]
+... Normalizations carried:  ['KR', 'SCALE', 'VC', 'VC_SQRT']
+... hic version:  9
+### Converting
+### Finished! Output written to: back.hic
+wrote matrix.mcool and back.hic
 ```
 
 `hic2cool_update`, `hic2cool_extractnorms`, `hic2cool_print_stderr` and
