@@ -81,7 +81,7 @@ hic2cool_convert(<infile>, <outfile>, <resolution (optional)>, <nproc (optional)
 cool2hic_convert('my_cool.mcool', 'my_hic.hic', hic_version=9, normalizations='auto')
 ```
 
-`hic2cool_update`, `hic2cool_extractnorms`, `hic2cool_print_stderr` and `hic2cool_force_exit` are available as before, as are the submodules `hic2cool_config`, `hic2cool_updates` and `hic2cool_utils`. Messages go to `sys.stdout` and `sys.stderr`, so redirecting those captures them; the conversions release the GIL.
+The command line is the `hicxchange` executable; the Python package is the library interface. `hic2cool_update`, `hic2cool_extractnorms`, `hic2cool_print_stderr` and `hic2cool_force_exit` are available as before, as are the submodules `hic2cool_config`, `hic2cool_updates` and `hic2cool_utils`. Messages go to `sys.stdout` and `sys.stderr`, so redirecting those captures them; the conversions release the GIL.
 
 ## Building
 
@@ -132,7 +132,7 @@ pip install . --config-settings=cmake.define.HIC2COOL_HICCPP_SOURCE_DIR=/path/to
 ```
 
 This builds the extension module and installs the `hicxchange` command
-alongside it; `python -m hicxchange` takes the same arguments. To build the module in the source tree instead, for
+alongside it. To build the module in the source tree instead, for
 example to run the tests against it, configure with `-DHICXCHANGE_BUILD_PYTHON=ON`
 and point `Python_EXECUTABLE` and `pybind11_DIR` at the interpreter to build
 for:

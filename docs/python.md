@@ -1,5 +1,8 @@
 # Python API
 
+The commands are the C++ executable `hicxchange`; this page is the library
+interface, importable from Python.
+
 The functions of hic2cool 1.0.1 keep their names, positional arguments and
 defaults, so code written for it keeps working once the import changes from
 `hic2cool` to `hicxchange`. The one changed default is `nproc`, which is 0,
@@ -43,12 +46,3 @@ Messages go to `sys.stdout` and `sys.stderr` as they do in hic2cool, so
 redirecting those captures them. A condition that makes the command line tool
 exit with status 1 raises `SystemExit` from the Python functions, as
 `hic2cool_force_exit` does. The conversions release the GIL while they run.
-
-## The command line in Python
-
-`python -m hicxchange` takes the arguments of the `hicxchange` command:
-
-```
-python -m hicxchange hic2cool convert matrix.hic matrix.mcool
-python -m hicxchange cool2hic matrix.mcool matrix.hic
-```
