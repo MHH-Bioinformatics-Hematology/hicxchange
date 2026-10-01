@@ -26,26 +26,26 @@ find_package(HDF5 REQUIRED COMPONENTS C)
 find_package(ZLIB REQUIRED)
 find_package(Threads REQUIRED)
 
-# hicfilecpp (.hic reading and writing, 0.4 or newer): an installed package,
-# or a source tree given with HICXCHANGE_HICFILECPP_SOURCE_DIR, or fetched.
-if(NOT TARGET hicfilecpp::hicfilecpp)
-    set(HICXCHANGE_HICFILECPP_SOURCE_DIR "" CACHE PATH "hicfilecpp source tree to build with")
-    set(HICXCHANGE_HICFILECPP_GIT_REPOSITORY "" CACHE STRING "hicfilecpp git repository to fetch")
-    set(HICXCHANGE_HICFILECPP_GIT_TAG "main" CACHE STRING "hicfilecpp git tag to fetch")
-    if(HICXCHANGE_HICFILECPP_SOURCE_DIR)
-        set(HICFILECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-        set(HICFILECPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
-        add_subdirectory(${HICXCHANGE_HICFILECPP_SOURCE_DIR} ${CMAKE_BINARY_DIR}/hicfilecpp EXCLUDE_FROM_ALL)
-    elseif(HICXCHANGE_HICFILECPP_GIT_REPOSITORY)
+# hiccpp (.hic reading and writing, 0.4 or newer): an installed package,
+# or a source tree given with HICXCHANGE_HICCPP_SOURCE_DIR, or fetched.
+if(NOT TARGET hiccpp::hiccpp)
+    set(HICXCHANGE_HICCPP_SOURCE_DIR "" CACHE PATH "hiccpp source tree to build with")
+    set(HICXCHANGE_HICCPP_GIT_REPOSITORY "" CACHE STRING "hiccpp git repository to fetch")
+    set(HICXCHANGE_HICCPP_GIT_TAG "main" CACHE STRING "hiccpp git tag to fetch")
+    if(HICXCHANGE_HICCPP_SOURCE_DIR)
+        set(HICCPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(HICCPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
+        add_subdirectory(${HICXCHANGE_HICCPP_SOURCE_DIR} ${CMAKE_BINARY_DIR}/hiccpp EXCLUDE_FROM_ALL)
+    elseif(HICXCHANGE_HICCPP_GIT_REPOSITORY)
         include(FetchContent)
-        set(HICFILECPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-        set(HICFILECPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
-        FetchContent_Declare(hicfilecpp
-            GIT_REPOSITORY ${HICXCHANGE_HICFILECPP_GIT_REPOSITORY}
-            GIT_TAG ${HICXCHANGE_HICFILECPP_GIT_TAG})
-        FetchContent_MakeAvailable(hicfilecpp)
+        set(HICCPP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+        set(HICCPP_BUILD_HARNESS OFF CACHE BOOL "" FORCE)
+        FetchContent_Declare(hiccpp
+            GIT_REPOSITORY ${HICXCHANGE_HICCPP_GIT_REPOSITORY}
+            GIT_TAG ${HICXCHANGE_HICCPP_GIT_TAG})
+        FetchContent_MakeAvailable(hiccpp)
     else()
-        find_package(hicfilecpp 0.4 REQUIRED)
+        find_package(hiccpp 0.4 REQUIRED)
     endif()
 endif()
 
@@ -89,7 +89,7 @@ target_include_directories(hicxchange_core
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src)
 target_link_libraries(hicxchange_core
-    PUBLIC hicfilecpp::hicfilecpp coolercpp::coolercpp
+    PUBLIC hiccpp::hiccpp coolercpp::coolercpp
     PRIVATE HDF5::HDF5 ZLIB::ZLIB Threads::Threads)
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(hicxchange_core PRIVATE -Wall -Wextra)

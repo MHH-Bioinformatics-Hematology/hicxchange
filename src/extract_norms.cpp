@@ -7,7 +7,7 @@
 #include <limits>
 #include <map>
 
-#include <hicfilecpp/hicfilecpp.hpp>
+#include <hiccpp/hiccpp.hpp>
 
 #include <coolercpp/coolercpp.hpp>
 
@@ -23,7 +23,7 @@ void hic2cool_extractnorms(const std::string& infile, const std::string& outfile
     using namespace detail;
     bool warn = false;
     check_hic_magic(infile);
-    const hicfilecpp::HiCFile hic(infile);
+    const hiccpp::HiCFile hic(infile);
     HicHeader header = read_hic_header(hic, console);
 
     std::vector<std::string> chr_names;

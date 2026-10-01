@@ -9,7 +9,7 @@
 #include <utility>
 #include <vector>
 
-#include <hicfilecpp/hicfilecpp.hpp>
+#include <hiccpp/hiccpp.hpp>
 
 #include "hicxchange/hicxchange.hpp"
 
@@ -38,7 +38,7 @@ struct HicHeader {
 
 // Opens and reads the file as read_header and read_footer do, printing the
 // footer's warning. Throws ExitError for a file that is not a .hic file.
-HicHeader read_hic_header(const hicfilecpp::HiCFile& hic, const Console& console);
+HicHeader read_hic_header(const hiccpp::HiCFile& hic, const Console& console);
 
 // The magic string check of read_header.
 void check_hic_magic(const std::string& path);

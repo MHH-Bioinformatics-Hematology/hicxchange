@@ -23,7 +23,7 @@ void check_hic_magic(const std::string& path) {
     }
 }
 
-HicHeader read_hic_header(const hicfilecpp::HiCFile& hic, const Console& console) {
+HicHeader read_hic_header(const hiccpp::HiCFile& hic, const Console& console) {
     HicHeader header;
     for (const auto& chromosome : hic.getChromosomes()) {
         if (!chromosome.name.empty() && chromosome.length != 0) {

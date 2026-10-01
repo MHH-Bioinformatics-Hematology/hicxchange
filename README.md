@@ -14,7 +14,7 @@ $ hicxchange cool2hic matrix.mcool matrix.hic             # cool/mcool to .hic
 * **The same files.** On the test files of both projects, `hic2cool convert`, `extract-norms` and `update` write the groups, datasets, dtypes, chunk shapes, filters, attributes and values hic2cool 1.0.1 writes, and print the same messages ([docs/DEVIATIONS.md](docs/DEVIATIONS.md) lists the exceptions).
 * **cool2hic**, the opposite conversion: .cool and .mcool files to .hic version 8 or 9.
 
-The original hic parsing code was based on the [straw project](https://github.com/theaidenlab/straw) by Neva C. Durand and Yue Wu, and the hdf5-based structure used for cooler file writing on the [cooler repository](https://github.com/open2c/cooler). The C++ implementation reads and writes .hic files with hicfilecpp (see [Building](#building)), which follows hicstraw and Juicer tools.
+The original hic parsing code was based on the [straw project](https://github.com/theaidenlab/straw) by Neva C. Durand and Yue Wu, and the hdf5-based structure used for cooler file writing on the [cooler repository](https://github.com/open2c/cooler). The C++ implementation reads and writes .hic files with hiccpp (see [Building](#building)), which follows hicstraw and Juicer tools.
 
 ## Converting .hic to cool
 
@@ -86,7 +86,7 @@ cool2hic_convert('my_cool.mcool', 'my_hic.hic', hic_version=9, normalizations='a
 ## Building
 
 Dependencies: a C++20 compiler (GCC 12 or newer, Clang 16 or newer), CMake 3.21
-or newer, the HDF5 C library, zlib, hicfilecpp 0.4 or newer, which reads and
+or newer, the HDF5 C library, zlib, hiccpp 0.4 or newer, which reads and
 writes the .hic files, and coolercpp 0.4 or newer, which reads, writes and edits
 the cool files. hic2cool contains no HDF5 code of its own. The Python package also needs Python 3.8 or newer,
 pybind11 and scikit-build-core.
@@ -101,17 +101,17 @@ conda activate hic2cool-build
 
 ### The command line tools
 
-`hicfilecpp` and `coolercpp` are each found in one of three ways: as an installed
-CMake package (`find_package(hicfilecpp 0.4)`), as a source tree
-(`-DHICXCHANGE_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp`), or fetched during the
-configure step (`-DHICXCHANGE_HICFILECPP_GIT_REPOSITORY=<url>`, with
-`-DHICXCHANGE_HICFILECPP_GIT_TAG=<tag>`). The variables of `coolercpp` are named
+`hiccpp` and `coolercpp` are each found in one of three ways: as an installed
+CMake package (`find_package(hiccpp 0.4)`), as a source tree
+(`-DHICXCHANGE_HICCPP_SOURCE_DIR=/path/to/hiccpp`), or fetched during the
+configure step (`-DHICXCHANGE_HICCPP_GIT_REPOSITORY=<url>`, with
+`-DHICXCHANGE_HICCPP_GIT_TAG=<tag>`). The variables of `coolercpp` are named
 `HICXCHANGE_COOLERCPP_SOURCE_DIR`, `HICXCHANGE_COOLERCPP_GIT_REPOSITORY` and
 `HICXCHANGE_COOLERCPP_GIT_TAG`.
 
 ```
 cmake -S . -B build -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
-      -DHICXCHANGE_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
+      -DHICXCHANGE_HICCPP_SOURCE_DIR=/path/to/hiccpp \
       -DHICXCHANGE_COOLERCPP_SOURCE_DIR=/path/to/coolercpp
 cmake --build build -j
 ```
@@ -127,7 +127,7 @@ hicxchange cool2hic --help
 ### The Python package
 
 ```
-pip install . --config-settings=cmake.define.HIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
+pip install . --config-settings=cmake.define.HIC2COOL_HICCPP_SOURCE_DIR=/path/to/hiccpp \
       --config-settings=cmake.define.HIC2COOL_COOLERCPP_SOURCE_DIR=/path/to/coolercpp
 ```
 
@@ -139,7 +139,7 @@ for:
 
 ```
 cmake -S . -B build -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
-      -DHICXCHANGE_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
+      -DHICXCHANGE_HICCPP_SOURCE_DIR=/path/to/hiccpp \
       -DHICXCHANGE_BUILD_PYTHON=ON \
       -DPython_EXECUTABLE="$(which python)" \
       -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"

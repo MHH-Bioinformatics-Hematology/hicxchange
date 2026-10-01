@@ -8,5 +8,5 @@
 | `SRR1791297_30.juicer_tools_1.22.01.v8.hic` | Juicer tools 1.22.01: `pre -j 1 -r 1000000,250000,50000,10000 contacts.txt out.hic sacCer3.chrom.sizes` | yeast contacts of SRR1791297 (from HiCExplorer's test data), version 8 |
 | `SRR1791297_30.juicer_tools_2.20.00.v9.hic` | Juicer tools 2.20.00: `pre -j 1 -k VC,VC_SQRT,KR,SCALE,INTER_SCALE,GW_SCALE -r 1000000,250000,50000,10000 contacts.txt out.hic sacCer3.chrom.sizes` | the same contacts, version 9 |
 
-The last four files come from the test data of hicfilecpp, the .hic library
+The last four files come from the test data of hiccpp, the .hic library
 this fork reads and writes .hic files with.

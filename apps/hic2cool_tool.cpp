@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include <hicfilecpp/errors.hpp>
+#include <hiccpp/errors.hpp>
 
 #include "argparse_lite.hpp"
 #include "subtools.hpp"

@@ -12,7 +12,7 @@
 #include <map>
 #include <set>
 
-#include <hicfilecpp/hicfilecpp.hpp>
+#include <hiccpp/hiccpp.hpp>
 
 #include "io.hpp"
 #include "hicxchange/hicxchange.hpp"
@@ -172,7 +172,7 @@ class PixelWriter {
     std::size_t nnz_ = 0;
 };
 
-void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const HicHeader& header, h5::File& file,
+void convert_resolution(ThreadPool& pool, const hiccpp::HiCFile& hic, const HicHeader& header, h5::File& file,
                         std::int32_t binsize, bool multi_res, bool square, bool show_warnings,
                         const Console& console) {
     std::string group = "/";
@@ -318,7 +318,7 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
     };
     for (const HicChrom* chr_a : chroms) {
         struct PairMatrix {
-            hicfilecpp::MatrixZoomData mzd;
+            hiccpp::MatrixZoomData mzd;
             std::int64_t bins1;
             std::int64_t bins2;
             std::int64_t offset1;
@@ -328,14 +328,14 @@ void convert_resolution(ThreadPool& pool, const hicfilecpp::HiCFile& hic, const 
         struct BlockRef {
             std::int64_t floor;
             std::size_t pair;
-            hicfilecpp::BlockIndexEntry entry;
+            hiccpp::BlockIndexEntry entry;
         };
         std::vector<PairMatrix> pairs;
         std::vector<BlockRef> blocks;
         const auto add_pair = [&](std::int32_t c1, std::int32_t c2, bool mirror) {
             const auto headers = hic.hasMatrix(c1, c2) ? hic.matrixZoomHeaders(c1, c2)
-                                                        : std::vector<hicfilecpp::ZoomHeader>{};
-            const auto zoom = std::find_if(headers.begin(), headers.end(), [&](const hicfilecpp::ZoomHeader& h) {
+                                                        : std::vector<hiccpp::ZoomHeader>{};
+            const auto zoom = std::find_if(headers.begin(), headers.end(), [&](const hiccpp::ZoomHeader& h) {
                 return h.unit == "BP" && h.binSize == binsize;
             });
             if (zoom == headers.end()) {
@@ -460,7 +460,7 @@ std::string convert_impl(const std::string& infile, const std::string& outfile,
     }
     const bool square = storage_mode == "square";
     check_hic_magic(infile);
-    const hicfilecpp::HiCFile hic(infile);
+    const hiccpp::HiCFile hic(infile);
     const HicHeader header = read_hic_header(hic, console);
     if (!silent) {
         std::vector<std::string> chr_names;

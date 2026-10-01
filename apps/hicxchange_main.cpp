@@ -7,7 +7,7 @@
 #include <string>
 #include <vector>
 
-#include <hicfilecpp/errors.hpp>
+#include <hiccpp/errors.hpp>
 
 #include "hicxchange/hicxchange.hpp"
 #include "subtools.hpp"

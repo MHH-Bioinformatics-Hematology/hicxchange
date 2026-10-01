@@ -60,7 +60,7 @@ on them:
 `cool2hic` has no counterpart in hic2cool 1.0.1. Its choices:
 
 - The .hic file is laid out as Juicer tools `pre` lays it out (version 8 as
-  1.22.01, version 9 as 2.x), through hicfilecpp. Normalizations it computes
+  1.22.01, version 9 as 2.x), through hiccpp. Normalizations it computes
   are those of Juicer tools `addNorm`; on the test data they are bit for bit
   those Juicer tools 2.20.00 `addNorm` writes into the same file.
 - `--normalizations auto` (the default) writes back the normalization columns

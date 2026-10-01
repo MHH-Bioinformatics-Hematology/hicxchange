@@ -6,7 +6,7 @@
 #include <pybind11/pybind11.h>
 #include <pybind11/stl.h>
 
-#include <hicfilecpp/errors.hpp>
+#include <hiccpp/errors.hpp>
 
 #include "hicxchange/hicxchange.hpp"
 
@@ -46,7 +46,7 @@ PYBIND11_MODULE(_hicxchange, m) {
             }
         } catch (const hicxchange::ExitError& e) {
             py::set_error(exit_error, e.what());
-        } catch (const hicfilecpp::HicError& e) {
+        } catch (const hiccpp::HicError& e) {
             py::set_error(exit_error, (std::string("!!! ERROR. ") + e.what()).c_str());
         }
     });

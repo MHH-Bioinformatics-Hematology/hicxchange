@@ -1,7 +1,7 @@
 // cool2hic: a .cool or .mcool file to a .hic file, the opposite of
 // hic2cool_convert. Not part of the Python hic2cool package.
 //
-// The pixels of every chosen resolution are handed to hicfilecpp's writer,
+// The pixels of every chosen resolution are handed to hiccpp's writer,
 // which lays the file out as Juicer tools pre does (version 8 as release
 // 1.22.01, version 9 as 2.x). Normalization vectors that hic2cool stored as
 // bins table columns are written back as they are, so that a .hic file taken
@@ -17,7 +17,7 @@
 #include <cstring>
 #include <sstream>
 
-#include <hicfilecpp/hicfilecpp.hpp>
+#include <hiccpp/hiccpp.hpp>
 
 #include <coolercpp/coolercpp.hpp>
 
@@ -77,7 +77,7 @@ std::vector<std::string> split_list(const std::string& text) {
     return out;
 }
 
-class CoolSource : public hicfilecpp::PixelSource {
+class CoolSource : public hiccpp::PixelSource {
   public:
     // lower: take the lower triangle of square coolers, transposed.
     CoolSource(ThreadPool& pool, const h5::File& file, std::vector<Resolution>& resolutions, bool lower)
@@ -96,7 +96,7 @@ class CoolSource : public hicfilecpp::PixelSource {
     }
 
     void pixels(std::int32_t resolution, std::int32_t chr1, std::int32_t chr2,
-                const std::function<void(const hicfilecpp::Pixel*, std::size_t)>& consume) override {
+                const std::function<void(const hiccpp::Pixel*, std::size_t)>& consume) override {
         const Resolution& group = group_for(resolution);
         // The writer asks for one pair at a time, once per resolution; a
         // pair's pixels are kept until it moves on to the next pair.
@@ -126,7 +126,7 @@ class CoolSource : public hicfilecpp::PixelSource {
             return;
         }
         const std::int32_t factor = resolution / group.binsize;
-        std::vector<hicfilecpp::Pixel> binned(bucket.begin(), bucket.end());
+        std::vector<hiccpp::Pixel> binned(bucket.begin(), bucket.end());
         for (auto& p : binned) {
             p.bin1 /= factor;
             p.bin2 /= factor;
@@ -168,7 +168,7 @@ class CoolSource : public hicfilecpp::PixelSource {
     }
 
   private:
-    using Buckets = std::vector<std::vector<hicfilecpp::Pixel>>;
+    using Buckets = std::vector<std::vector<hiccpp::Pixel>>;
 
     static std::uint64_t mix(std::uint64_t x) {  // splitmix64
         x += 0x9e3779b97f4a7c15ULL;
@@ -186,7 +186,7 @@ class CoolSource : public hicfilecpp::PixelSource {
         for (auto& [path, loaded] : caches_) {
             const auto it = loaded.find(row_chrom);
             if (it != loaded.end()) {
-                std::vector<hicfilecpp::Pixel>().swap(it->second[static_cast<std::size_t>(other)]);
+                std::vector<hiccpp::Pixel>().swap(it->second[static_cast<std::size_t>(other)]);
             }
         }
     }
@@ -252,8 +252,8 @@ class CoolSource : public hicfilecpp::PixelSource {
             const auto local1 = static_cast<std::int32_t>(b1 - first_bin);
             const auto local2 = static_cast<std::int32_t>(b2 - group.chrom_offset[static_cast<std::size_t>(chr2)]);
             buckets[static_cast<std::size_t>(chr2)].push_back(
-                lower_ ? hicfilecpp::Pixel{local2, local1, static_cast<float>(value)}
-                       : hicfilecpp::Pixel{local1, local2, static_cast<float>(value)});
+                lower_ ? hiccpp::Pixel{local2, local1, static_cast<float>(value)}
+                       : hiccpp::Pixel{local1, local2, static_cast<float>(value)});
         });
         return buckets;
     }
@@ -460,7 +460,7 @@ std::string cool2hic_convert(const std::string& infile, const std::string& outfi
 
     const int threads = options.nproc > 0 ? options.nproc : available_threads();
     ThreadPool pool(threads);
-    hicfilecpp::WriteOptions write;
+    hiccpp::WriteOptions write;
     write.version = options.hic_version;
     write.genomeId = genome;
     for (std::size_t i = 0; i < names.size(); ++i) {
@@ -546,8 +546,8 @@ std::string cool2hic_convert(const std::string& infile, const std::string& outfi
         }
     }
     try {
-        hicfilecpp::writeHicFile(outfile, write, source);
-    } catch (const hicfilecpp::HicError& e) {
+        hiccpp::writeHicFile(outfile, write, source);
+    } catch (const hiccpp::HicError& e) {
         throw ExitError(std::string("!!! ERROR. ") + e.what());
     }
     if (!options.silent) {
