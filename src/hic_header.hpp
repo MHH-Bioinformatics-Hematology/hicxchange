@@ -1,8 +1,8 @@
 // What hic2cool's read_header and read_footer take from a .hic file, and the
 // messages they print.
 
-#ifndef HIC2COOL_HIC_HEADER_HPP
-#define HIC2COOL_HIC_HEADER_HPP
+#ifndef HICXCHANGE_HIC_HEADER_HPP
+#define HICXCHANGE_HIC_HEADER_HPP
 
 #include <cstdint>
 #include <string>
@@ -11,9 +11,9 @@
 
 #include <hicfilecpp/hicfilecpp.hpp>
 
-#include "hic2cool/hic2cool.hpp"
+#include "hicxchange/hicxchange.hpp"
 
-namespace hic2cool::detail {
+namespace hicxchange::detail {
 
 struct HicChrom {
     std::int32_t index = 0;
@@ -43,6 +43,6 @@ HicHeader read_hic_header(const hicfilecpp::HiCFile& hic, const Console& console
 // The magic string check of read_header.
 void check_hic_magic(const std::string& path);
 
-}  // namespace hic2cool::detail
+}  // namespace hicxchange::detail
 
-#endif  // HIC2COOL_HIC_HEADER_HPP
+#endif  // HICXCHANGE_HIC_HEADER_HPP

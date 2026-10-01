@@ -15,11 +15,11 @@
 #include <hicfilecpp/hicfilecpp.hpp>
 
 #include "io.hpp"
-#include "hic2cool/hic2cool.hpp"
+#include "hicxchange/hicxchange.hpp"
 #include "hic_header.hpp"
 #include "pyformat.hpp"
 
-namespace hic2cool {
+namespace hicxchange {
 
 namespace {
 
@@ -542,4 +542,4 @@ std::string hic2cool_convert_mcool(const std::string& infile, const std::string&
                         "symmetric-upper", console);
 }
 
-}  // namespace hic2cool
+}  // namespace hicxchange

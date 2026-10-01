@@ -8,7 +8,7 @@
 #include <ctime>
 #include <limits>
 
-namespace hic2cool::detail {
+namespace hicxchange::detail {
 
 std::string py_repr(const std::string& text) {
     const bool has_single = text.find('\'') != std::string::npos;
@@ -245,4 +245,4 @@ std::string pandas_bins_head(const std::string& norm, const std::vector<BinsPrev
     return out;
 }
 
-}  // namespace hic2cool::detail
+}  // namespace hicxchange::detail

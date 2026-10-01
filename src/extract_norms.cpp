@@ -12,11 +12,11 @@
 #include <coolercpp/coolercpp.hpp>
 
 #include "io.hpp"
-#include "hic2cool/hic2cool.hpp"
+#include "hicxchange/hicxchange.hpp"
 #include "hic_header.hpp"
 #include "pyformat.hpp"
 
-namespace hic2cool {
+namespace hicxchange {
 
 void hic2cool_extractnorms(const std::string& infile, const std::string& outfile, bool exclude_mt,
                            bool show_warnings, bool silent, const Console& console) {
@@ -166,4 +166,4 @@ void hic2cool_extractnorms(const std::string& infile, const std::string& outfile
     }
 }
 
-}  // namespace hic2cool
+}  // namespace hicxchange

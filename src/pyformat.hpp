@@ -2,15 +2,15 @@
 // lists, dicts and floats, datetime.utcnow().isoformat(), and the pandas
 // DataFrame preview extract-norms prints.
 
-#ifndef HIC2COOL_PYFORMAT_HPP
-#define HIC2COOL_PYFORMAT_HPP
+#ifndef HICXCHANGE_PYFORMAT_HPP
+#define HICXCHANGE_PYFORMAT_HPP
 
 #include <cstdint>
 #include <string>
 #include <utility>
 #include <vector>
 
-namespace hic2cool::detail {
+namespace hicxchange::detail {
 
 // repr(str)
 [[nodiscard]] std::string py_repr(const std::string& text);
@@ -36,6 +36,6 @@ struct BinsPreviewRow {
 };
 [[nodiscard]] std::string pandas_bins_head(const std::string& norm, const std::vector<BinsPreviewRow>& rows);
 
-}  // namespace hic2cool::detail
+}  // namespace hicxchange::detail
 
-#endif  // HIC2COOL_PYFORMAT_HPP
+#endif  // HICXCHANGE_PYFORMAT_HPP

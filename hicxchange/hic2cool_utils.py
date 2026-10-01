@@ -6,7 +6,7 @@ Converter between .hic files (from juicer) and .cool files (for cooler).
 
 This fork keeps the Python API of hic2cool 1.0.1 (4dn-dcic/hic2cool, written
 by Carl Vitzthum, Nezar Abdennur, Soo Lee and Peter Kerpedjiev) and runs the
-conversions in C++ (the _hic2cool extension module): .hic versions 6 to 9 are
+conversions in C++ (the _hicxchange extension module): .hic versions 6 to 9 are
 read, all available CPUs are used by default, and cool2hic_convert converts in
 the other direction.
 
@@ -24,14 +24,14 @@ See README for more information
 import os
 import sys
 
-from . import _hic2cool
+from . import _hicxchange
 from ._version import __version__
 
 
 def _run(function, *args, **kwargs):
     try:
         return function(*args, **kwargs)
-    except _hic2cool.ExitError as error:
+    except _hicxchange.ExitError as error:
         force_exit(str(error))
 
 
@@ -58,7 +58,7 @@ def hic2cool_convert(infile, outfile, resolution=0, nproc=0, show_warnings=False
     """
     with open(infile, 'rb'):
         pass
-    return _run(_hic2cool.convert, os.fspath(infile), os.fspath(outfile), int(resolution), int(nproc),
+    return _run(_hicxchange.convert, os.fspath(infile), os.fspath(outfile), int(resolution), int(nproc),
                 bool(show_warnings), bool(silent), storage_mode)
 
 
@@ -79,7 +79,7 @@ def hic2cool_extractnorms(infile, outfile, exclude_mt=False, show_warnings=False
         pass
     if not os.path.exists(outfile):
         raise FileNotFoundError(2, 'No such file or directory', os.fspath(outfile))
-    _run(_hic2cool.extract_norms, os.fspath(infile), os.fspath(outfile), bool(exclude_mt), bool(show_warnings),
+    _run(_hicxchange.extract_norms, os.fspath(infile), os.fspath(outfile), bool(exclude_mt), bool(show_warnings),
          bool(silent))
 
 
@@ -97,7 +97,7 @@ def hic2cool_update(infile, outfile='', show_warnings=False, silent=False):
     """
     if not os.path.exists(infile):
         raise FileNotFoundError(2, 'No such file or directory', os.fspath(infile))
-    _run(_hic2cool.update, os.fspath(infile), os.fspath(outfile) if outfile else '', bool(show_warnings),
+    _run(_hicxchange.update, os.fspath(infile), os.fspath(outfile) if outfile else '', bool(show_warnings),
          bool(silent))
 
 
@@ -134,7 +134,7 @@ def cool2hic_convert(infile, outfile, resolution=0, nproc=0, hic_version=9, norm
         raise FileNotFoundError(2, 'No such file or directory', path)
     if not isinstance(normalizations, str):
         normalizations = ','.join(normalizations) if normalizations else 'none'
-    return _run(_hic2cool.cool2hic, os.fspath(infile), os.fspath(outfile), int(resolution),
+    return _run(_hicxchange.cool2hic, os.fspath(infile), os.fspath(outfile), int(resolution),
                 [int(r) for r in (add_resolutions or [])], int(nproc), int(hic_version), normalizations,
                 cooler_weight, genome or '', bool(show_warnings), bool(silent), triangle)
 

@@ -2,8 +2,8 @@
 // without values, abbreviated long options, grouped short flags, positional
 // arguments, and argparse's usage and error messages (exit status 2).
 
-#ifndef HIC2COOL_ARGPARSE_LITE_HPP
-#define HIC2COOL_ARGPARSE_LITE_HPP
+#ifndef HICXCHANGE_ARGPARSE_LITE_HPP
+#define HICXCHANGE_ARGPARSE_LITE_HPP
 
 #include <cstdint>
 #include <cstdlib>
@@ -13,7 +13,7 @@
 #include <string>
 #include <vector>
 
-namespace hic2cool::cli {
+namespace hicxchange::cli {
 
 struct Option {
     std::string short_name;  // "-r" or empty
@@ -214,6 +214,6 @@ class Parser {
     std::vector<std::string> unrecognized_;
 };
 
-}  // namespace hic2cool::cli
+}  // namespace hicxchange::cli
 
-#endif  // HIC2COOL_ARGPARSE_LITE_HPP
+#endif  // HICXCHANGE_ARGPARSE_LITE_HPP

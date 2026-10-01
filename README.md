@@ -1,8 +1,13 @@
-# hic2cool 2 #
+# hicxchange #
 
-Converter between hic files (from juicer) and single-resolution or multi-resolution cool files (for cooler), in both directions. Both hic and cool files describe Hi-C contact matrices.
+Converting Hi-C contact matrices between the Juicer .hic format and the cooler .cool and .mcool formats, in both directions. One command with two subtools:
 
-**This is a fork of [hic2cool](https://github.com/4dn-dcic/hic2cool)**, written by Carl Vitzthum, Nezar Abdennur, Soo Lee and Peter Kerpedjiev at the 4DN Data Coordination and Integration Center (Park lab and Gehlenborg lab, Harvard Medical School DBMI; Mirny lab, MIT), released under the MIT licence. The fork keeps that licence ([LICENSE.txt](LICENSE.txt)), its command line and its Python API, and replaces the implementation with multi-threaded C++:
+```
+$ hicxchange hic2cool convert matrix.hic matrix.mcool     # .hic to cool/mcool
+$ hicxchange cool2hic matrix.mcool matrix.hic             # cool/mcool to .hic
+```
+
+**hicxchange is a fork of [hic2cool](https://github.com/4dn-dcic/hic2cool)**, written by Carl Vitzthum, Nezar Abdennur, Soo Lee and Peter Kerpedjiev at the 4DN Data Coordination and Integration Center (Park lab and Gehlenborg lab, Harvard Medical School DBMI; Mirny lab, MIT), released under the MIT licence. The fork keeps that licence ([LICENSE.txt](LICENSE.txt)) and the arguments and Python functions of hic2cool 1.0.1, and replaces the implementation with multi-threaded C++. The commands became subtools of `hicxchange`, and the Python package is imported as `hicxchange`, so that hicxchange and hic2cool can be installed side by side:
 
 * **.hic versions 6 to 9.** hic2cool 1.0.1 reads versions 6 to 8; a version 9 file (Juicer tools 2) stops with a `UnicodeDecodeError`.
 * **All cores by default.** `-p/--nproc` and `nproc` default to 0, every CPU the process may use. The output does not depend on the number of threads.
@@ -14,7 +19,7 @@ The original hic parsing code was based on the [straw project](https://github.co
 ## Converting .hic to cool
 
 ```
-$ hic2cool convert <infile> <outfile> -r <resolution> -p <nproc>
+$ hicxchange hic2cool convert <infile> <outfile> -r <resolution> -p <nproc>
 ```
 
 **infile** is a .hic input file, version 6, 7, 8 or 9.
@@ -33,13 +38,14 @@ $ hic2cool convert <infile> <outfile> -r <resolution> -p <nproc>
 
 **-h**, or --help, print out help about the package/specific run mode and exit.
 
-Running hic2cool from the command line will cause some helpful information about the hic file to be printed to stdout unless the `-s` flag is used.
+Running the subtool from the command line will cause some helpful information about the hic file to be printed to stdout unless the `-s` flag is used.
 
 ## Converting cool to .hic
 
 ```
-$ cool2hic <infile> <outfile> [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
-           [--hic-version {8,9}] [-n NORMALIZATIONS] [--cooler-weight NAME] [-g GENOME] [-s] [-w]
+$ hicxchange cool2hic <infile> <outfile> [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
+                      [--hic-version {8,9}] [-n NORMALIZATIONS] [--cooler-weight NAME]
+                      [-g GENOME] [--triangle {auto,upper,lower}] [-s] [-w]
 ```
 
 **infile** is a .cool or .mcool file, or a cooler URI such as `matrix.mcool::/resolutions/10000`.
@@ -58,9 +64,9 @@ $ cool2hic <infile> <outfile> [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
 
 **-g**, or --genome: the genome id of the .hic header; default the cooler file's genome-assembly attribute.
 
-**-p**, **-s** and **-w** work as for `hic2cool convert`.
+**-p**, **-s** and **-w** work as for `hicxchange hic2cool convert`.
 
-A .hic file converted with `hic2cool convert` and back with `cool2hic` has the same pixels, normalization vectors and expected values as the original (bit for bit on the test files; version 9 stores vectors as float32).
+A .hic file converted with `hicxchange hic2cool convert` and back with `hicxchange cool2hic` has the same pixels, normalization vectors and expected values as the original (bit for bit on the test files; version 9 stores vectors as float32).
 
 ## Using the Python package
 
@@ -68,14 +74,14 @@ A .hic file converted with `hic2cool convert` and back with `cool2hic` has the s
 $ pip install .
 ```
 
-Once the package is installed, the main method is hic2cool_convert. It takes the same parameters as `hic2cool convert`. Example usage in a Python script is shown below or in test.py.
+Once the package is installed, the main method is hic2cool_convert. It takes the same parameters as `hicxchange hic2cool convert`, and the same positional arguments and defaults as hic2cool 1.0.1, except nproc, which defaults to every available CPU. Everything hicxchange adds is a keyword only argument, so calls written for hic2cool keep working once the import is changed. Example usage in a Python script is shown below or in test.py.
 ```
-from hic2cool import hic2cool_convert, cool2hic_convert
+from hicxchange import hic2cool_convert, cool2hic_convert
 hic2cool_convert(<infile>, <outfile>, <resolution (optional)>, <nproc (optional)>, <warnings (optional)>, <silent (optional)>)
 cool2hic_convert('my_cool.mcool', 'my_hic.hic', hic_version=9, normalizations='auto')
 ```
 
-`hic2cool_update`, `hic2cool_extractnorms`, `hic2cool_print_stderr` and `hic2cool_force_exit` are available as before. Messages go to `sys.stdout` and `sys.stderr`, so redirecting those captures them; the conversions release the GIL.
+`hic2cool_update`, `hic2cool_extractnorms`, `hic2cool_print_stderr` and `hic2cool_force_exit` are available as before, as are the submodules `hic2cool_config`, `hic2cool_updates` and `hic2cool_utils`. Messages go to `sys.stdout` and `sys.stderr`, so redirecting those captures them; the conversions release the GIL.
 
 ## Building
 
@@ -88,7 +94,7 @@ pybind11 and scikit-build-core.
 Conda provides all of them:
 
 ```
-conda create -n hic2cool-build -c conda-forge python=3.12 cxx-compiler cmake \
+conda create -n hicxchange-build -c conda-forge python=3.12 cxx-compiler cmake \
       hdf5 zlib pybind11 scikit-build-core pytest h5py numpy cooler
 conda activate hic2cool-build
 ```
@@ -97,25 +103,25 @@ conda activate hic2cool-build
 
 `hicfilecpp` and `coolercpp` are each found in one of three ways: as an installed
 CMake package (`find_package(hicfilecpp 0.4)`), as a source tree
-(`-DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp`), or fetched during the
-configure step (`-DHIC2COOL_HICFILECPP_GIT_REPOSITORY=<url>`, with
-`-DHIC2COOL_HICFILECPP_GIT_TAG=<tag>`). The variables of `coolercpp` are named
-`HIC2COOL_COOLERCPP_SOURCE_DIR`, `HIC2COOL_COOLERCPP_GIT_REPOSITORY` and
-`HIC2COOL_COOLERCPP_GIT_TAG`.
+(`-DHICXCHANGE_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp`), or fetched during the
+configure step (`-DHICXCHANGE_HICFILECPP_GIT_REPOSITORY=<url>`, with
+`-DHICXCHANGE_HICFILECPP_GIT_TAG=<tag>`). The variables of `coolercpp` are named
+`HICXCHANGE_COOLERCPP_SOURCE_DIR`, `HICXCHANGE_COOLERCPP_GIT_REPOSITORY` and
+`HICXCHANGE_COOLERCPP_GIT_TAG`.
 
 ```
 cmake -S . -B build -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
-      -DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
-      -DHIC2COOL_COOLERCPP_SOURCE_DIR=/path/to/coolercpp
+      -DHICXCHANGE_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
+      -DHICXCHANGE_COOLERCPP_SOURCE_DIR=/path/to/coolercpp
 cmake --build build -j
 ```
 
-This writes `build/hic2cool` and `build/cool2hic`. To install them:
+This writes `build/hicxchange`. To install it:
 
 ```
 cmake --install build --prefix "$HOME/.local"
-hic2cool --version
-cool2hic --help
+hicxchange --version
+hicxchange cool2hic --help
 ```
 
 ### The Python package
@@ -125,16 +131,16 @@ pip install . --config-settings=cmake.define.HIC2COOL_HICFILECPP_SOURCE_DIR=/pat
       --config-settings=cmake.define.HIC2COOL_COOLERCPP_SOURCE_DIR=/path/to/coolercpp
 ```
 
-This builds the extension module and installs the `hic2cool` and `cool2hic`
-commands alongside it. To build the module in the source tree instead, for
-example to run the tests against it, configure with `-DHIC2COOL_BUILD_PYTHON=ON`
+This builds the extension module and installs the `hicxchange` command
+alongside it; `python -m hicxchange` takes the same arguments. To build the module in the source tree instead, for
+example to run the tests against it, configure with `-DHICXCHANGE_BUILD_PYTHON=ON`
 and point `Python_EXECUTABLE` and `pybind11_DIR` at the interpreter to build
 for:
 
 ```
 cmake -S . -B build -DCMAKE_PREFIX_PATH="$CONDA_PREFIX" \
-      -DHIC2COOL_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
-      -DHIC2COOL_BUILD_PYTHON=ON \
+      -DHICXCHANGE_HICFILECPP_SOURCE_DIR=/path/to/hicfilecpp \
+      -DHICXCHANGE_BUILD_PYTHON=ON \
       -DPython_EXECUTABLE="$(which python)" \
       -Dpybind11_DIR="$(python -m pybind11 --cmakedir)"
 cmake --build build -j
@@ -142,7 +148,7 @@ cmake --build build -j
 
 ### The tests
 
-The tests need the Python module (`-DHIC2COOL_BUILD_PYTHON=ON` above) and a
+The tests need the Python module (`-DHICXCHANGE_BUILD_PYTHON=ON` above) and a
 Python with pytest, h5py, numpy and cooler; `cooler` must be on `PATH`, since
 one test calls `cooler dump`. They run the original hic2cool test suite and the
 fork's own tests against a copy of the package in the build tree:
@@ -158,10 +164,10 @@ Measured on a 32-core machine (Linux, local NVMe disk) with the 40 GB `GSE63525_
 | Conversion | Threads | Wall time | Peak memory |
 |---|---|---|---|
 | `hic2cool convert -r 25000`, hic2cool 1.0.1 (Python) | 1 | 1,951 s | 5.25 GB |
-| `hic2cool convert -r 25000`, this fork | 1 | 162 s | 0.48 GB |
-| `hic2cool convert -r 25000`, this fork | 8 | 46 s | 0.76 GB |
-| `hic2cool convert -r 25000`, this fork | 32 | 34 s | 1.44 GB |
-| `cool2hic` (cool to .hic v9, vectors carried), this fork | 32 | 56 s | 3.19 GB |
+| `hicxchange hic2cool convert -r 25000` | 1 | 162 s | 0.48 GB |
+| `hicxchange hic2cool convert -r 25000` | 8 | 46 s | 0.76 GB |
+| `hicxchange hic2cool convert -r 25000` | 32 | 34 s | 1.44 GB |
+| `hicxchange cool2hic` (cool to .hic v9, vectors carried) | 32 | 56 s | 3.19 GB |
 
 The cool files written with 1, 16 and 32 threads hold the same data in the same layout; they differ only in their timestamps. Converting the .hic file written by `cool2hic` back to cool returns all 898,978,865 pixels unchanged and the normalization vectors equal at float32 precision. Memory grows with the thread count because every thread decodes a .hic block at a time; `-p` bounds it.
 
@@ -172,7 +178,7 @@ File --> 'resolutions' --> '###' (where ### is the resolution in bp).
 For example, see the code below that generates a multi-res file and then accesses the specific resolution of 10000 bp.
 
 ```
-from hic2cool import hic2cool_convert
+from hicxchange import hic2cool_convert
 import cooler
 ### using 0 triggers a multi-res output
 hic2cool_convert('my_hic.hic', 'my_cool.cool', 0)
@@ -183,7 +189,7 @@ my_cooler = cooler.Cooler('my_cool.cool::resolutions/10000')
 When using only one resolution, the .cool file produced stores all the necessary information at the top level. Thus, organization in the multi-res format is not needed. The code below produces a file with one resolution, 10000 bp, and opens it with a cooler object.
 
 ```
-from hic2cool import hic2cool_convert
+from hicxchange import hic2cool_convert
 import cooler
 ### giving a specific resolution below (e.g. 10000) triggers a single-res output
 hic2cool_convert('my_hic.hic', 'my_cool.cool', 10000)
@@ -210,7 +216,7 @@ In the near future, there will be a `cooler` package release to correctly handle
 
 To update a hic2cool cooler, simply run:
 ```
-hic2cool update <infile> <outfile (optional)>
+hicxchange hic2cool update <infile> -o <outfile (optional)>
 ```
 
 If you only provide the `infile` argument, then the cooler will be updated directly. If you provide an optional `outfile` file path, then a new cooler updated cooler file will be created and the original file will remain unchanged.
@@ -219,10 +225,10 @@ If you only provide the `infile` argument, then the cooler will be updated direc
 ## Extracting hic normalization values
 As of hic2cool 0.5.0, you can easily extract hic normalization vectors to an existing cooler file. This will only work if the specified cooler file shares the resolutions found in the hic file. To do this, simply run:
 ```
-hic2cool extract-norms <hic file> <cooler file>
+hicxchange hic2cool extract-norms <hic file> <cooler file>
 ```
 
-You may also provide the optional `-e` flag, which will cause the mitchondrial chromosome to automatically be omitted from the extraction. This is found by name; the code specifically looks for one of `['M', 'MT', 'chrM', 'chrMT']` (in a case-insensitive way). Just like with `hic2cool convert`, you can also provide `-s` and `-w` [arguments](#arguments-for-hic2cool-convert).
+You may also provide the optional `-e` flag, which will cause the mitchondrial chromosome to automatically be omitted from the extraction. This is found by name; the code specifically looks for one of `['M', 'MT', 'chrM', 'chrMT']` (in a case-insensitive way). Just like with `hicxchange hic2cool convert`, you can also provide `-s` and `-w` [arguments](#arguments-for-hic2cool-convert).
 
 
 ## Changelog

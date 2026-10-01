@@ -9,10 +9,10 @@
 #include <limits>
 
 #include "io.hpp"
-#include "hic2cool/hic2cool.hpp"
+#include "hicxchange/hicxchange.hpp"
 #include "pyformat.hpp"
 
-namespace hic2cool {
+namespace hicxchange {
 
 namespace {
 
@@ -276,4 +276,4 @@ void hic2cool_update(const std::string& infile, const std::string& outfile, bool
     console.out("### Finished! Output written to: " + writefile);
 }
 
-}  // namespace hic2cool
+}  // namespace hicxchange

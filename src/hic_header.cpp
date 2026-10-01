@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <fstream>
 
-namespace hic2cool::detail {
+namespace hicxchange::detail {
 
 std::string lowercase(std::string text) {
     std::transform(text.begin(), text.end(), text.begin(),
@@ -54,4 +54,4 @@ HicHeader read_hic_header(const hicfilecpp::HiCFile& hic, const Console& console
     return header;
 }
 
-}  // namespace hic2cool::detail
+}  // namespace hicxchange::detail

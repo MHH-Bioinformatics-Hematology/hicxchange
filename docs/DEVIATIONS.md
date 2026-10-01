@@ -1,5 +1,14 @@
 # Differences from hic2cool 1.0.1
 
+hicxchange is the fork's name; this page compares its behaviour with hic2cool
+1.0.1. The commands are subtools of one executable (`hicxchange hic2cool ...`,
+`hicxchange cool2hic ...`) and the Python package is imported as `hicxchange`,
+so that both packages can be installed at once. The cool files it writes still
+carry `generated-by: hic2cool-2.0.0`: tools that read cool files check that
+attribute to decide how to apply the normalization vectors (HiCExplorer and
+cooler both treat `hic2cool-` files as divisive), and a different string would
+change how the vectors are interpreted.
+
 hic2cool 2.x keeps the command line and the Python API of hic2cool 1.0.1 and
 writes the same files: the same groups, datasets, dtypes, chunk shapes,
 filters, attributes and values, and prints the same messages. This page lists

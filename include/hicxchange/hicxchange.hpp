@@ -8,8 +8,8 @@
 // to 8), use every available core unless told otherwise, and are joined by
 // cool2hic_convert, the conversion in the other direction.
 
-#ifndef HIC2COOL_HIC2COOL_HPP
-#define HIC2COOL_HIC2COOL_HPP
+#ifndef HICXCHANGE_HIC2COOL_HPP
+#define HICXCHANGE_HIC2COOL_HPP
 
 #include <cstdint>
 #include <functional>
@@ -18,9 +18,9 @@
 #include <string>
 #include <vector>
 
-#include "hic2cool/version.hpp"
+#include "hicxchange/version.hpp"
 
-namespace hic2cool {
+namespace hicxchange {
 
 // A condition under which the Python package prints a message to standard
 // error and calls sys.exit(1) (hic2cool_utils.force_exit). what() is the
@@ -122,6 +122,6 @@ std::string cool2hic_convert(const std::string& infile, const std::string& outfi
                              const Cool2hicOptions& options = {},
                              const Console& console = Console::standard());
 
-}  // namespace hic2cool
+}  // namespace hicxchange
 
-#endif  // HIC2COOL_HIC2COOL_HPP
+#endif  // HICXCHANGE_HIC2COOL_HPP

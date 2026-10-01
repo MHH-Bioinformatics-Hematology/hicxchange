@@ -22,10 +22,10 @@
 #include <coolercpp/coolercpp.hpp>
 
 #include "io.hpp"
-#include "hic2cool/hic2cool.hpp"
+#include "hicxchange/hicxchange.hpp"
 #include "pyformat.hpp"
 
-namespace hic2cool {
+namespace hicxchange {
 
 namespace {
 
@@ -559,4 +559,4 @@ std::string cool2hic_convert(const std::string& infile, const std::string& outfi
     return outfile;
 }
 
-}  // namespace hic2cool
+}  // namespace hicxchange

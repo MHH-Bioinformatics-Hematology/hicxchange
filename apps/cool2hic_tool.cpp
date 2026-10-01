@@ -7,24 +7,25 @@
 #include <vector>
 
 #include "argparse_lite.hpp"
-#include "hic2cool/hic2cool.hpp"
+#include "subtools.hpp"
+#include "hicxchange/hicxchange.hpp"
 
 namespace {
 
-using hic2cool::cli::Option;
-using hic2cool::cli::Parser;
+using hicxchange::cli::Option;
+using hicxchange::cli::Parser;
 
-const char* kUsage = R"(usage: cool2hic [-h] [-v] [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
-                [--hic-version {8,9}] [-n NORMALIZATIONS]
-                [--cooler-weight NAME] [-g GENOME]
-                [--triangle {auto,upper,lower}] [-s] [-w]
-                infile outfile)";
+const char* kUsage = R"(usage: hicxchange cool2hic [-h] [-v] [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
+                           [--hic-version {8,9}] [-n NORMALIZATIONS]
+                           [--cooler-weight NAME] [-g GENOME]
+                           [--triangle {auto,upper,lower}] [-s] [-w]
+                           infile outfile)";
 
-const char* kHelp = R"(usage: cool2hic [-h] [-v] [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
-                [--hic-version {8,9}] [-n NORMALIZATIONS]
-                [--cooler-weight NAME] [-g GENOME]
-                [--triangle {auto,upper,lower}] [-s] [-w]
-                infile outfile
+const char* kHelp = R"(usage: hicxchange cool2hic [-h] [-v] [-r RESOLUTION] [-a ADD_RESOLUTIONS] [-p NPROC]
+                           [--hic-version {8,9}] [-n NORMALIZATIONS]
+                           [--cooler-weight NAME] [-g GENOME]
+                           [--triangle {auto,upper,lower}] [-s] [-w]
+                           infile outfile
 
 convert a cooler file (.cool, .mcool or file.mcool::/resolutions/<bp>) to a
 hic file
@@ -74,11 +75,11 @@ options:
 int run(const std::vector<std::string>& args) {
     for (const auto& arg : args) {
         if (arg == "-v" || arg == "--version") {
-            std::cout << "cool2hic " << hic2cool::kVersion << std::endl;
+            std::cout << "cool2hic " << hicxchange::kVersion << std::endl;
             return 0;
         }
     }
-    Parser parser("cool2hic", kUsage, kHelp);
+    Parser parser("hicxchange cool2hic", kUsage, kHelp);
     parser.positional("infile");
     parser.positional("outfile");
     parser.option(Option{"-v", "--version", "", false, ""});
@@ -100,7 +101,7 @@ int run(const std::vector<std::string>& args) {
         }
         parser.error("unrecognized arguments: " + list);
     }
-    hic2cool::Cool2hicOptions options;
+    hicxchange::Cool2hicOptions options;
     options.resolution = parser.integer("--resolution");
     options.nproc = static_cast<int>(parser.integer("--nproc"));
     options.hic_version = static_cast<int>(parser.integer("--hic-version"));
@@ -135,23 +136,16 @@ int run(const std::vector<std::string>& args) {
     }
     options.show_warnings = parser.flag("--warnings");
     options.silent = parser.flag("--silent");
-    hic2cool::cool2hic_convert(parser.arg("infile"), parser.arg("outfile"), options);
+    hicxchange::cool2hic_convert(parser.arg("infile"), parser.arg("outfile"), options);
     return 0;
 }
 
 }  // namespace
 
-int main(int argc, char** argv) {
-    std::ios::sync_with_stdio(false);
-    try {
-        return run(std::vector<std::string>(argv + 1, argv + argc));
-    } catch (const hic2cool::ExitError& e) {
-        std::cout.flush();
-        std::cerr << e.what() << std::endl;
-        return 1;
-    } catch (const std::exception& e) {
-        std::cout.flush();
-        std::cerr << "!!! ERROR. " << e.what() << std::endl;
-        return 1;
-    }
+namespace hicxchange::cli {
+
+int run_cool2hic(const std::vector<std::string>& args) {
+    return run(args);
 }
+
+}  // namespace hicxchange::cli

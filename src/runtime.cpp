@@ -3,9 +3,9 @@
 
 #include <coolercpp/parallel.hpp>
 
-#include "hic2cool/hic2cool.hpp"
+#include "hicxchange/hicxchange.hpp"
 
-namespace hic2cool {
+namespace hicxchange {
 
 int available_threads() { return coolercpp::available_threads(); }
 
@@ -27,4 +27,4 @@ Console Console::standard() {
     return console;
 }
 
-}  // namespace hic2cool
+}  // namespace hicxchange

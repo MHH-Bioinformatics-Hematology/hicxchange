@@ -1,4 +1,4 @@
-# hic2cool 2.x is a fork of hic2cool (https://github.com/4dn-dcic/hic2cool),
+# hicxchange is a fork of hic2cool (https://github.com/4dn-dcic/hic2cool),
 # written by Carl Vitzthum, Nezar Abdennur, Soo Lee and Peter Kerpedjiev and
 # released under the MIT licence, which this fork keeps. The original .hic
 # parsing was based on the straw project by Neva C. Durand and Yue Wu
@@ -10,9 +10,9 @@ requires = ["scikit-build-core>=0.10", "pybind11>=2.12"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "hic2cool"
+name = "hicxchange"
 version = "2.0.0"
-description = "Converter between hic files (from juicer) and single-resolution or multi-resolution cool files (for cooler), both directions, .hic versions 6 to 9, multi-threaded C++."
+description = "Converting Hi-C matrices between the Juicer .hic format and the cooler .cool and .mcool formats in both directions, .hic versions 6 to 9, multi-threaded C++."
 readme = "README.md"
 license = { text = "MIT" }
 authors = [
@@ -36,14 +36,15 @@ dependencies = ["numpy>=1.9"]
 test = ["pytest", "h5py", "cooler"]
 
 [project.urls]
-Repository = "https://github.com/4dn-dcic/hic2cool/"
+Repository = "https://github.com/MHH-Bioinformatics-Hematology/hicxchange"
+Upstream = "https://github.com/4dn-dcic/hic2cool"
 
 [tool.scikit-build]
 cmake.version = ">=3.21"
-wheel.packages = ["hic2cool"]
-build.targets = ["_hic2cool", "hic2cool", "cool2hic"]
+wheel.packages = ["hicxchange"]
+build.targets = ["_hicxchange", "hicxchange"]
 install.components = []
 
 [tool.scikit-build.cmake.define]
-HIC2COOL_BUILD_PYTHON = "ON"
-HIC2COOL_BUILD_TESTS = "OFF"
+HICXCHANGE_BUILD_PYTHON = "ON"
+HICXCHANGE_BUILD_TESTS = "OFF"

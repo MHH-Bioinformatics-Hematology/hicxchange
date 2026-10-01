@@ -1,0 +1,10 @@
+#ifndef HICXCHANGE_VERSION_HPP
+#define HICXCHANGE_VERSION_HPP
+
+namespace hicxchange {
+
+inline constexpr const char* kVersion = "@PROJECT_VERSION@";
+
+}  // namespace hicxchange
+
+#endif  // HICXCHANGE_VERSION_HPP

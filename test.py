@@ -14,7 +14,7 @@ import math
 import hashlib
 import shutil
 import numpy as np
-from hic2cool import (
+from hicxchange import (
     hic2cool_convert,
     hic2cool_update,
     hic2cool_extractnorms,
@@ -557,28 +557,28 @@ class TestPythonApiCompatibility(unittest.TestCase):
     }
 
     def test_names_are_exported(self):
-        import hic2cool
+        import hicxchange
         for name in ['hic2cool_convert', 'hic2cool_update', 'hic2cool_extractnorms', 'hic2cool_print_stderr',
                      'hic2cool_force_exit', 'hic2cool_config', 'hic2cool_updates', 'hic2cool_utils', '__version__']:
-            self.assertTrue(hasattr(hic2cool, name), name)
-        from hic2cool.hic2cool_config import COOLER_FORMAT, NORM_DTYPE  # noqa: F401
-        from hic2cool.hic2cool_updates import prepare_hic2cool_updates, norm_convert  # noqa: F401
+            self.assertTrue(hasattr(hicxchange, name), name)
+        from hicxchange.hic2cool_config import COOLER_FORMAT, NORM_DTYPE  # noqa: F401
+        from hicxchange.hic2cool_updates import prepare_hic2cool_updates, norm_convert  # noqa: F401
 
     def test_positional_arguments_are_unchanged(self):
         import inspect
-        import hic2cool
+        import hicxchange
         for name, expected in self.UPSTREAM.items():
-            parameters = inspect.signature(getattr(hic2cool, name)).parameters
+            parameters = inspect.signature(getattr(hicxchange, name)).parameters
             positional = [p.name for p in parameters.values()
                           if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD)]
             self.assertEqual(positional, expected, name)
             for argument, default in self.UPSTREAM_DEFAULTS[name].items():
                 self.assertEqual(parameters[argument].default, default, f'{name}.{argument}')
         # what the fork adds is keyword only
-        convert = inspect.signature(hic2cool.hic2cool_convert).parameters
+        convert = inspect.signature(hicxchange.hic2cool_convert).parameters
         self.assertEqual(convert['nproc'].default, 0)
         self.assertEqual(convert['storage_mode'].kind, inspect.Parameter.KEYWORD_ONLY)
-        cool2hic = inspect.signature(hic2cool.cool2hic_convert).parameters
+        cool2hic = inspect.signature(hicxchange.cool2hic_convert).parameters
         self.assertEqual(cool2hic['triangle'].kind, inspect.Parameter.KEYWORD_ONLY)
         self.assertEqual([p for p in list(cool2hic)[:2]], ['infile', 'outfile'])
 
