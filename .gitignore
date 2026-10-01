@@ -64,7 +64,7 @@ instance/
 .scrapy
 
 # Sphinx documentation
-docs/_build/
+site/
 
 # PyBuilder
 target/
@@ -93,5 +93,5 @@ ENV/
 
 # Data written by tests
 test_data/OUT_*
-docs/_build/
-docs/_doxygen/
+site/
+

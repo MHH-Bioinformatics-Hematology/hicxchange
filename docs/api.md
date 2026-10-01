@@ -17,9 +17,6 @@ Messages and prompts go through a `Console`, which the command line fills with
 the process streams and the Python module with `sys.stdout`, `sys.stderr` and
 `input`.
 
-```{eval-rst}
-.. doxygennamespace:: hicxchange
-   :members:
-   :undoc-members:
-   :content-only:
+```cpp
+--8<-- "include/hicxchange/hicxchange.hpp"
 ```

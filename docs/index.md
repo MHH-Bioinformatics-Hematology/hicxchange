@@ -21,22 +21,3 @@ licence, its command arguments and its Python functions. What it adds:
 
 It reads and writes `.hic` files with [hiccpp](https://hiccpp.readthedocs.io) and
 cool files with [coolercpp](https://coolercpp.readthedocs.io).
-
-```{toctree}
-:maxdepth: 2
-:caption: Guide
-
-install
-hic2cool
-cool2hic
-python
-performance
-```
-
-```{toctree}
-:maxdepth: 2
-:caption: Reference
-
-api
-DEVIATIONS
-```

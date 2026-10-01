@@ -1,0 +1,51 @@
+site_name: hicxchange
+site_description: Converting Hi-C contact matrices between the Juicer .hic format and the cooler formats, both directions
+site_author: Joachim Wolff
+site_url: https://hicxchange.readthedocs.io/
+repo_url: https://github.com/MHH-Bioinformatics-Hematology/hicxchange
+repo_name: MHH-Bioinformatics-Hematology/hicxchange
+edit_uri: edit/main/docs/
+copyright: MIT License
+
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.top
+    - content.code.copy
+    - toc.integrate
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - tables
+  - toc:
+      permalink: true
+  - pymdownx.highlight
+  - pymdownx.superfences
+  - pymdownx.details
+  - pymdownx.snippets:
+      base_path: ['.']
+      check_paths: true
+
+nav:
+  - Home: index.md
+  - Installation: install.md
+  - hic2cool: hic2cool.md
+  - cool2hic: cool2hic.md
+  - Python API: python.md
+  - Performance: performance.md
+  - C++ API: api.md
+  - Differences from hic2cool: DEVIATIONS.md
