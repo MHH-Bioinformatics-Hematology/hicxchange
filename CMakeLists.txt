@@ -9,6 +9,8 @@ include(GNUInstallDirs)
 
 option(HICXCHANGE_BUILD_PYTHON "Build the Python module hicxchange._hicxchange" OFF)
 option(HICXCHANGE_BUILD_TESTS "Build and register the tests" ${PROJECT_IS_TOP_LEVEL})
+option(HICXCHANGE_BUILD_EXAMPLES "Build the example programs the documentation shows"
+    ${PROJECT_IS_TOP_LEVEL})
 
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -124,6 +126,10 @@ if(HICXCHANGE_BUILD_PYTHON)
     if(SKBUILD)
         install(TARGETS _hicxchange LIBRARY DESTINATION hicxchange)
     endif()
+endif()
+
+if(HICXCHANGE_BUILD_EXAMPLES)
+    add_subdirectory(examples)
 endif()
 
 if(HICXCHANGE_BUILD_TESTS)
